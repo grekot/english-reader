@@ -21,6 +21,7 @@ class BubbleManager {
       builder: (ctx) => _PositionedBubble(
         anchor: anchor,
         onInteract: cancelTimer,
+        onClose: hide,
         child: child,
       ),
     );
@@ -49,11 +50,13 @@ class _PositionedBubble extends StatelessWidget {
   final Rect anchor;
   final Widget child;
   final VoidCallback onInteract;
+  final VoidCallback onClose;
 
   const _PositionedBubble({
     required this.anchor,
     required this.child,
     required this.onInteract,
+    required this.onClose,
   });
 
   static const double _maxWidth = 280;
@@ -80,10 +83,16 @@ class _PositionedBubble extends StatelessWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: _maxWidth),
             child: Listener(
+              // Dotknięcie dymka zatrzymuje auto-znikanie (np. by nacisnąć przycisk).
               onPointerDown: (_) => onInteract(),
-              child: Material(
-                color: Colors.transparent,
-                child: child,
+              child: GestureDetector(
+                // Kliknięcie w tło dymka zamyka go. Przyciski (TTS, zapis) mają
+                // własne obsługi dotyku i przejmują kliknięcia w swoim obszarze.
+                onTap: onClose,
+                child: Material(
+                  color: Colors.transparent,
+                  child: child,
+                ),
               ),
             ),
           ),

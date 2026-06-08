@@ -115,7 +115,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     _bubble.show(
       context,
       anchor: hit.globalRect,
-      seconds: settings.bubbleSeconds,
+      seconds: settings.sentenceBubbleSeconds,
       child: SentenceBubbleContent(
         translation: sentence.pl,
         ttsAvailable: tts.available,

@@ -37,6 +37,9 @@ class SettingsController extends Notifier<AppSettings> {
   Future<void> setBubbleSeconds(int value) =>
       _persist(state.copyWith(bubbleSeconds: value));
 
+  Future<void> setSentenceBubbleSeconds(int value) =>
+      _persist(state.copyWith(sentenceBubbleSeconds: value));
+
   Future<void> setTtsLanguage(String value) =>
       _persist(state.copyWith(ttsLanguage: value));
 }

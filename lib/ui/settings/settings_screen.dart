@@ -35,7 +35,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const Divider(),
           ListTile(
-            title: const Text('Czas znikania dymka'),
+            title: const Text('Czas dymka słowa'),
             subtitle: Slider(
               min: 1,
               max: 10,
@@ -45,6 +45,19 @@ class SettingsScreen extends ConsumerWidget {
               onChanged: (v) => ctrl.setBubbleSeconds(v.round()),
             ),
             trailing: Text('${settings.bubbleSeconds} s'),
+          ),
+          const Divider(),
+          ListTile(
+            title: const Text('Czas dymka zdania'),
+            subtitle: Slider(
+              min: 2,
+              max: 20,
+              divisions: 18,
+              label: '${settings.sentenceBubbleSeconds} s',
+              value: settings.sentenceBubbleSeconds.toDouble(),
+              onChanged: (v) => ctrl.setSentenceBubbleSeconds(v.round()),
+            ),
+            trailing: Text('${settings.sentenceBubbleSeconds} s'),
           ),
           const Divider(),
           ListTile(
