@@ -14,7 +14,10 @@ class ManageEntry {
   final Map<String, dynamic> raw;
   final List<String> issues;
 
-  ManageEntry(this.raw, this.issues);
+  /// Czy suma kontrolna pliku różni się od zapisanej w index.json (plik zmieniony).
+  final bool shaChanged;
+
+  ManageEntry(this.raw, this.issues, {this.shaChanged = false});
 
   bool get valid => issues.isEmpty;
   String get id => raw['id'] as String? ?? '';
@@ -23,6 +26,18 @@ class ManageEntry {
   String? get level => raw['level'] as String?;
   String get category => raw['category'] as String? ?? 'Ogólne';
   String get file => raw['file'] as String? ?? '';
+}
+
+/// Wynik skanowania repozytorium: wpisy z index.json + pliki nieprzypisane.
+class ManageScan {
+  final List<ManageEntry> entries;
+
+  /// Pliki .json w texts/, których nie ma w index.json (do dodania).
+  final List<String> orphanFiles;
+
+  ManageScan(this.entries, this.orphanFiles);
+
+  bool get anyShaChanged => entries.any((e) => e.shaChanged);
 }
 
 /// Operacje na lokalnym repozytorium tekstów (folder na dysku):
@@ -48,8 +63,9 @@ class ManagementService {
 
   File _indexFile(String repoPath) => File('$repoPath/index.json');
 
-  /// Wczytuje wpisy z index.json i waliduje każdy tekst.
-  Future<List<ManageEntry>> load(String repoPath) async {
+  /// Skanuje repozytorium: wpisy z index.json (z walidacją i statusem sumy)
+  /// oraz pliki w texts/ nieobecne w katalogu.
+  Future<ManageScan> scan(String repoPath) async {
     final idxFile = _indexFile(repoPath);
     if (!await idxFile.exists()) {
       throw const FileSystemException(
@@ -58,12 +74,85 @@ class ManagementService {
     }
     final idx = jsonDecode(await idxFile.readAsString()) as Map<String, dynamic>;
     final texts = (idx['texts'] as List<dynamic>? ?? const []);
+    final referenced = <String>{};
     final result = <ManageEntry>[];
     for (final e in texts) {
       final entry = e as Map<String, dynamic>;
-      result.add(ManageEntry(entry, await _validate(repoPath, entry)));
+      final rel = (entry['file'] as String? ?? '').replaceAll('\\', '/');
+      referenced.add(rel);
+      final issues = await _validate(repoPath, entry);
+      var shaChanged = false;
+      final f = File('$repoPath/${entry['file']}');
+      if (await f.exists()) {
+        shaChanged = entry['sha256'] != _sha256OfFile(f);
+      }
+      result.add(ManageEntry(entry, issues, shaChanged: shaChanged));
     }
-    return result;
+
+    // Pliki .json w texts/ nieprzypisane do żadnego wpisu.
+    final orphans = <String>[];
+    final textsDir = Directory('$repoPath/texts');
+    if (await textsDir.exists()) {
+      await for (final f in textsDir.list()) {
+        if (f is File && f.path.toLowerCase().endsWith('.json')) {
+          final rel = 'texts/${f.uri.pathSegments.last}';
+          if (!referenced.contains(rel)) orphans.add(rel);
+        }
+      }
+    }
+    orphans.sort();
+    return ManageScan(result, orphans);
+  }
+
+  void _recomputeAllSha(String repoPath, Map<String, dynamic> idx) {
+    for (final e in (idx['texts'] as List<dynamic>)) {
+      final entry = e as Map<String, dynamic>;
+      final f = File('$repoPath/${entry['file']}');
+      if (f.existsSync()) entry['sha256'] = _sha256OfFile(f);
+    }
+  }
+
+  Future<void> _stampAndWrite(File idxFile, Map<String, dynamic> idx) async {
+    final now = DateTime.now();
+    idx['updatedAt'] =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    const encoder = JsonEncoder.withIndent('  ');
+    await idxFile.writeAsString('${encoder.convert(idx)}\n');
+  }
+
+  /// Dodaje (lub aktualizuje) wpis dla pliku tekstu i przelicza sumy.
+  Future<void> addFile(String repoPath, String relFile,
+      {String? category}) async {
+    final f = File('$repoPath/$relFile');
+    final doc = jsonDecode(await f.readAsString()) as Map<String, dynamic>;
+    final id = (doc['id'] as String?)?.trim();
+    if (id == null || id.isEmpty) {
+      throw const FormatException('Plik nie ma pola "id".');
+    }
+    final idxFile = _indexFile(repoPath);
+    final idx = jsonDecode(await idxFile.readAsString()) as Map<String, dynamic>;
+    final texts = (idx['texts'] as List<dynamic>);
+    texts.removeWhere((e) => (e as Map<String, dynamic>)['id'] == id);
+    final entry = <String, dynamic>{
+      'id': id,
+      'title': doc['title'] ?? id,
+      'category': category ?? doc['category'] ?? 'Ogólne',
+      'file': relFile.replaceAll('\\', '/'),
+    };
+    if (doc['author'] != null) entry['author'] = doc['author'];
+    if (doc['level'] != null) entry['level'] = doc['level'];
+    if (doc['tags'] != null) entry['tags'] = doc['tags'];
+    texts.add(entry);
+    _recomputeAllSha(repoPath, idx);
+    await _stampAndWrite(idxFile, idx);
+  }
+
+  /// Przelicza sumy kontrolne wszystkich tekstów i zapisuje index.json.
+  Future<void> refreshChecksums(String repoPath) async {
+    final idxFile = _indexFile(repoPath);
+    final idx = jsonDecode(await idxFile.readAsString()) as Map<String, dynamic>;
+    _recomputeAllSha(repoPath, idx);
+    await _stampAndWrite(idxFile, idx);
   }
 
   /// Sprawdza poprawność tekstu: istnienie pliku, poprawność JSON oraz czy

@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/management_repository.dart';
 
-/// Tryb zarządzania tekstami (Windows): lista + walidacja oraz edycja
-/// metadanych i kategorii w lokalnym repozytorium tekstów (folder na dysku).
+/// Tryb zarządzania tekstami (Windows): lista + walidacja, dodawanie nowych
+/// plików do index.json i aktualizacja sum kontrolnych po zmianie tekstu.
 class ManagementScreen extends ConsumerStatefulWidget {
   const ManagementScreen({super.key});
 
@@ -15,7 +15,7 @@ class ManagementScreen extends ConsumerStatefulWidget {
 
 class _ManagementScreenState extends ConsumerState<ManagementScreen> {
   String? _path;
-  List<ManageEntry>? _entries;
+  ManageScan? _scan;
   bool _loading = false;
   String? _error;
 
@@ -41,9 +41,8 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen> {
       }
       return;
     }
-    if (dir == null) return; // anulowano
+    if (dir == null) return;
     final service = ref.read(managementServiceProvider);
-    // Jeśli wskazano podfolder texts/, znajdź główny folder z index.json.
     final resolved = service.resolveRepoRoot(dir) ?? dir;
     await service.setRepoPath(resolved);
     setState(() => _path = resolved);
@@ -58,9 +57,9 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen> {
       _error = null;
     });
     try {
-      final entries = await ref.read(managementServiceProvider).load(path);
+      final scan = await ref.read(managementServiceProvider).scan(path);
       setState(() {
-        _entries = entries;
+        _scan = scan;
         _loading = false;
       });
     } catch (e) {
@@ -71,16 +70,54 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen> {
     }
   }
 
+  List<String> get _categories {
+    final set = <String>{for (final e in _scan?.entries ?? const []) e.category};
+    final list = set.toList()..sort();
+    return list;
+  }
+
   Future<void> _edit(ManageEntry entry) async {
-    final categories = <String>{
-      for (final e in _entries ?? <ManageEntry>[]) e.category,
-    }.toList()
-      ..sort();
     final changed = await showDialog<bool>(
       context: context,
-      builder: (_) => _EditDialog(entry: entry, categories: categories),
+      builder: (_) => _EditDialog(entry: entry, categories: _categories),
     );
     if (changed == true) _load();
+  }
+
+  Future<void> _addOrphan(String relFile) async {
+    final category = await showDialog<String>(
+      context: context,
+      builder: (_) => _CategoryDialog(
+        title: 'Dodaj: $relFile',
+        categories: _categories,
+      ),
+    );
+    if (category == null || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref
+          .read(managementServiceProvider)
+          .addFile(_path!, relFile, category: category);
+      messenger.showSnackBar(const SnackBar(
+        content: Text('Dodano do index.json. Pamiętaj o git commit + push.'),
+      ));
+      _load();
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Błąd dodawania: $e')));
+    }
+  }
+
+  Future<void> _refreshChecksums() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(managementServiceProvider).refreshChecksums(_path!);
+      messenger.showSnackBar(const SnackBar(
+        content: Text('Przeliczono sumy. Pamiętaj o git commit + push.'),
+      ));
+      _load();
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Błąd: $e')));
+    }
   }
 
   @override
@@ -132,8 +169,8 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen> {
         child: Padding(
           padding: EdgeInsets.all(24),
           child: Text(
-            'Wskaż folder z plikiem index.json (lokalna kopia repo tekstów),\n'
-            'aby zarządzać tekstami.',
+            'Wskaż główny folder repozytorium (ten z plikiem index.json\n'
+            'i podfolderem texts/), aby zarządzać tekstami.',
             textAlign: TextAlign.center,
           ),
         ),
@@ -147,35 +184,84 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen> {
         ),
       );
     }
-    final entries = _entries ?? const <ManageEntry>[];
-    if (entries.isEmpty) {
-      return const Center(child: Text('Brak tekstów w index.json.'));
-    }
+    final scan = _scan;
+    if (scan == null) return const SizedBox.shrink();
 
-    final invalidCount = entries.where((e) => !e.valid).length;
+    final invalidCount = scan.entries.where((e) => !e.valid).length;
+
     return ListView(
       children: [
+        // Banner: zmienione sumy kontrolne.
+        if (scan.anyShaChanged)
+          _banner(
+            context,
+            icon: Icons.sync_problem,
+            color: Colors.orange,
+            text: 'Wykryto zmienione pliki — zaktualizuj sumy kontrolne w index.json.',
+            actionLabel: 'Przelicz sumy',
+            onAction: _refreshChecksums,
+          ),
+        // Sekcja: pliki do dodania.
+        if (scan.orphanFiles.isNotEmpty) ...[
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Text('Pliki spoza katalogu (do dodania)',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          for (final rel in scan.orphanFiles)
+            ListTile(
+              leading: const Icon(Icons.note_add, color: Colors.blue),
+              title: Text(rel),
+              trailing: FilledButton(
+                onPressed: () => _addOrphan(rel),
+                child: const Text('Dodaj'),
+              ),
+            ),
+          const Divider(),
+        ],
+        // Lista wpisów.
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
           child: Text(
-            '${entries.length} tekstów · '
+            '${scan.entries.length} tekstów w index.json · '
             '${invalidCount == 0 ? "wszystkie poprawne" : "$invalidCount z błędami"}',
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ),
-        for (final e in entries) _entryTile(e),
+        for (final e in scan.entries) _entryTile(e),
       ],
     );
   }
 
+  Widget _banner(BuildContext context,
+      {required IconData icon,
+      required Color color,
+      required String text,
+      required String actionLabel,
+      required VoidCallback onAction}) {
+    return Container(
+      color: color.withValues(alpha: 0.12),
+      padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
+      child: Row(
+        children: [
+          Icon(icon, color: color),
+          const SizedBox(width: 12),
+          Expanded(child: Text(text)),
+          TextButton(onPressed: onAction, child: Text(actionLabel)),
+        ],
+      ),
+    );
+  }
+
   Widget _entryTile(ManageEntry e) {
-    final statusIcon = e.valid
-        ? const Icon(Icons.check_circle, color: Colors.green)
+    final Widget statusIcon = e.valid
+        ? Icon(e.shaChanged ? Icons.sync_problem : Icons.check_circle,
+            color: e.shaChanged ? Colors.orange : Colors.green)
         : const Icon(Icons.error, color: Colors.red);
     final subtitle = [
       e.category,
       if (e.level != null) e.level!,
-      if (e.author != null) e.author!,
+      if (e.shaChanged) 'plik zmieniony',
     ].join(' · ');
 
     if (e.valid) {
@@ -191,7 +277,6 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen> {
         onTap: () => _edit(e),
       );
     }
-    // Niepoprawny — pokaż listę problemów.
     return ExpansionTile(
       leading: statusIcon,
       title: Text(e.title),
@@ -211,6 +296,65 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen> {
             label: const Text('Edytuj metadane'),
             onPressed: () => _edit(e),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Dialog wyboru kategorii (dla dodawania nowego pliku).
+class _CategoryDialog extends StatefulWidget {
+  final String title;
+  final List<String> categories;
+  const _CategoryDialog({required this.title, required this.categories});
+
+  @override
+  State<_CategoryDialog> createState() => _CategoryDialogState();
+}
+
+class _CategoryDialogState extends State<_CategoryDialog> {
+  final _ctrl = TextEditingController(text: 'Ogólne');
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _ctrl,
+            decoration: const InputDecoration(labelText: 'Kategoria'),
+            autofocus: true,
+          ),
+          if (widget.categories.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Wrap(
+                spacing: 6,
+                children: [
+                  for (final c in widget.categories)
+                    ActionChip(label: Text(c), onPressed: () => _ctrl.text = c),
+                ],
+              ),
+            ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Anuluj'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(
+              _ctrl.text.trim().isEmpty ? 'Ogólne' : _ctrl.text.trim()),
+          child: const Text('Dodaj'),
         ),
       ],
     );
