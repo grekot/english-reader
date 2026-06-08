@@ -25,7 +25,9 @@ class QuizMenuScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasWords = canBuildWordQuiz(doc);
-    final comprehension = buildComprehension(doc);
+    final hasAuthored = doc.questions.isNotEmpty;
+    final canAuto = canBuildAutoComprehension(doc);
+    final comprehensionAvailable = hasAuthored || canAuto;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Quiz')),
@@ -51,11 +53,19 @@ class QuizMenuScreen extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.quiz),
             title: const Text('Pytania do tekstu'),
-            subtitle: Text(comprehension.isEmpty
-                ? 'Ten tekst nie ma pytań'
-                : 'Sprawdź zrozumienie (${comprehension.length} pytań)'),
-            enabled: comprehension.isNotEmpty,
-            onTap: () => _start(context, 'Pytania do tekstu', comprehension),
+            subtitle: Text(!comprehensionAvailable
+                ? 'Za mało treści na ten quiz'
+                : hasAuthored
+                    ? 'Pytania z pliku (${doc.questions.length})'
+                    : 'Pytania generowane automatycznie (zrozumienie zdań)'),
+            enabled: comprehensionAvailable,
+            onTap: () => _start(
+              context,
+              'Pytania do tekstu',
+              hasAuthored
+                  ? buildComprehension(doc)
+                  : buildAutoComprehension(doc, rng: Random()),
+            ),
           ),
         ],
       ),

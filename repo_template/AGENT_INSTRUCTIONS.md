@@ -134,6 +134,9 @@ sprawdzające **zrozumienie tekstu**, **po polsku**, wykorzystywane w quizie:
 - `answer` — indeks poprawnej odpowiedzi (0, 1 lub 2).
 - Zalecane 3–6 pytań dotyczących sensu/treści (nie samych słówek — quiz słówek
   generuje się automatycznie z tłumaczeń tokenów).
+- Pole jest **opcjonalne**: jeśli go nie dodasz, aplikacja sama wygeneruje quiz
+  zrozumienia (zdanie po angielsku → wybór poprawnego tłumaczenia). Dodaj własne
+  `questions`, gdy chcesz pytań o sens/wnioski wykraczające poza pojedyncze zdania.
 
 ## Walidacja PRZED zapisem (obowiązkowa)
 
