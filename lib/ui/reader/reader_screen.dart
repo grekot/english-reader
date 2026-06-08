@@ -54,11 +54,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       if (!_scroll.hasClients) return;
       final max = _scroll.position.maxScrollExtent;
       final offset = _scroll.offset;
-      // Krótki tekst bez przewijania = przeczytany w całości (100%).
-      final fraction = max > 0 ? offset / max : 1.0;
+      if (max <= 0) return; // tekst mieści się na ekranie — patrz przycisk ✓
       ref
           .read(progressProvider.notifier)
-          .save(widget.entry.id, offset, fraction);
+          .saveScroll(widget.entry.id, offset, offset / max);
     });
   }
 
@@ -72,9 +71,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       final max = _scroll.position.maxScrollExtent;
       if (saved > 0) {
         _scroll.jumpTo(saved.clamp(0, max));
-      } else if (max == 0) {
-        // Tekst mieści się bez przewijania => przeczytany w całości.
-        ref.read(progressProvider.notifier).save(widget.entry.id, 0, 1.0);
       }
     });
   }
@@ -139,9 +135,25 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final settings = ref.watch(settingsControllerProvider);
     final docAsync = ref.watch(documentProvider(widget.entry));
     final scheme = Theme.of(context).colorScheme;
+    final isRead =
+        (ref.watch(progressProvider)[widget.entry.id] ?? 0) >= 1.0;
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.entry.title, maxLines: 1, overflow: TextOverflow.ellipsis)),
+      appBar: AppBar(
+        title: Text(widget.entry.title,
+            maxLines: 1, overflow: TextOverflow.ellipsis),
+        actions: [
+          IconButton(
+            icon: Icon(isRead ? Icons.check_circle : Icons.check_circle_outline),
+            color: isRead ? Colors.green : null,
+            tooltip:
+                isRead ? 'Przeczytane — kliknij, by odznaczyć' : 'Oznacz jako przeczytane',
+            onPressed: () => ref
+                .read(progressProvider.notifier)
+                .setRead(widget.entry.id, !isRead),
+          ),
+        ],
+      ),
       body: docAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(

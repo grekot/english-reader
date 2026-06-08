@@ -30,11 +30,23 @@ class ProgressController extends Notifier<Map<String, double>> {
   double scrollOffset(String textId) =>
       _prefs.getDouble('$_kOffsetPrefix$textId') ?? 0;
 
-  Future<void> save(String textId, double offset, double fraction) async {
-    final clamped = fraction.clamp(0.0, 1.0);
+  /// Zapis pozycji przewijania. Procent rośnie monotonicznie (najdalsza
+  /// osiągnięta pozycja) — cofnięcie w górę go nie zmniejsza.
+  Future<void> saveScroll(
+      String textId, double offset, double currentFraction) async {
+    final cur = state[textId] ?? 0;
+    final reached = currentFraction.clamp(0.0, 1.0);
+    final next = reached > cur ? reached : cur;
     await _prefs.setDouble('$_kOffsetPrefix$textId', offset);
-    await _prefs.setDouble('$_kFractionPrefix$textId', clamped);
-    state = {...state, textId: clamped};
+    await _prefs.setDouble('$_kFractionPrefix$textId', next);
+    if (next != cur) state = {...state, textId: next};
+  }
+
+  /// Ręczne oznaczenie tekstu jako przeczytany (100%) / nieprzeczytany (0%).
+  Future<void> setRead(String textId, bool read) async {
+    final value = read ? 1.0 : 0.0;
+    await _prefs.setDouble('$_kFractionPrefix$textId', value);
+    state = {...state, textId: value};
   }
 }
 
