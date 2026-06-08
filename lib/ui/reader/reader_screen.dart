@@ -35,6 +35,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   Timer? _saveDebounce;
   bool _restoredOffset = false;
 
+  // Tryb dwujęzyczny (pokaż tłumaczenie pod akapitem)
+  bool _interlinear = false;
+
   // Czytanie na głos
   final ReadAloudPlayer _player = ReadAloudPlayer();
   bool _playing = false;
@@ -237,6 +240,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
             maxLines: 1, overflow: TextOverflow.ellipsis),
         actions: [
           IconButton(
+            icon: Icon(_interlinear ? Icons.translate : Icons.g_translate),
+            color: _interlinear ? Colors.green : null,
+            tooltip: _interlinear
+                ? 'Ukryj tłumaczenia zdań'
+                : 'Pokaż tłumaczenia zdań (dwujęzycznie)',
+            onPressed: () => setState(() => _interlinear = !_interlinear),
+          ),
+          IconButton(
             icon: Icon(_playing ? Icons.stop : Icons.volume_up),
             tooltip: _playing ? 'Zatrzymaj czytanie' : 'Czytaj na głos',
             onPressed: docAsync.value == null
@@ -314,7 +325,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
               separatorBuilder: (_, _) => const SizedBox(height: 16),
               itemBuilder: (context, i) {
                 final base = sentenceBase[i];
-                return TappableParagraph(
+                final paragraph = TappableParagraph(
                   key: _paraKeys[i],
                   paragraph: mappedList[i],
                   style: style,
@@ -329,6 +340,26 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                     _registerInteraction(
                         base + hit.sentence.sentenceIndex, totalSentences);
                   },
+                );
+                if (!_interlinear) return paragraph;
+                final pl = doc.paragraphs[i].sentences
+                    .map((s) => s.pl)
+                    .join(' ');
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    paragraph,
+                    const SizedBox(height: 6),
+                    Text(
+                      pl,
+                      style: TextStyle(
+                        fontSize: settings.fontSize - 2,
+                        height: 1.5,
+                        fontStyle: FontStyle.italic,
+                        color: scheme.onSurface.withValues(alpha: 0.65),
+                      ),
+                    ),
+                  ],
                 );
               },
             ),
