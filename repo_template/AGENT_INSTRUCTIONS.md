@@ -115,6 +115,26 @@ Aplikacja sama wylicza pozycje słów, dopasowując kolejno każde `w` w tekści
 
 ---
 
+## Pytania do tekstu — zrozumienie (opcjonalne, zalecane)
+
+Możesz dodać na końcu pliku (obok `paragraphs`) pole `questions` — pytania
+sprawdzające **zrozumienie tekstu**, **po polsku**, wykorzystywane w quizie:
+
+```json
+"questions": [
+  {
+    "q": "Dlaczego bohater wyruszył w podróż?",
+    "options": ["Bo szukał pracy", "Bo uciekał", "Bo się nudził"],
+    "answer": 0
+  }
+]
+```
+- `q` — treść pytania po polsku.
+- `options` — 3 odpowiedzi po polsku (pierwsza nie musi być poprawna — kolejność dowolna).
+- `answer` — indeks poprawnej odpowiedzi (0, 1 lub 2).
+- Zalecane 3–6 pytań dotyczących sensu/treści (nie samych słówek — quiz słówek
+  generuje się automatycznie z tłumaczeń tokenów).
+
 ## Walidacja PRZED zapisem (obowiązkowa)
 
 Zanim zapiszesz plik, sprawdź każde zdanie:

@@ -91,5 +91,34 @@
         }
       ]
     }
+  ],
+  "questions": [
+    {
+      "q": "Dlaczego Alicja zaczynała się nudzić?",
+      "options": [
+        "Nie miała nic do roboty, siedząc przy siostrze",
+        "Zgubiła swoją książkę",
+        "Czekała na kolację"
+      ],
+      "answer": 0
+    },
+    {
+      "q": "Co Alicja sądziła o książce, którą czytała jej siostra?",
+      "options": [
+        "Że jest bezużyteczna bez obrazków i rozmów",
+        "Że jest bardzo ciekawa",
+        "Że jest za trudna"
+      ],
+      "answer": 0
+    },
+    {
+      "q": "Gdzie siedziała Alicja?",
+      "options": [
+        "Na brzegu rzeki",
+        "W bibliotece",
+        "W ogrodzie"
+      ],
+      "answer": 0
+    }
   ]
 }

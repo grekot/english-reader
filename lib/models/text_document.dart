@@ -68,6 +68,24 @@ class Paragraph {
   }
 }
 
+/// Pytanie do tekstu (zrozumienie) — treść i odpowiedzi po polsku.
+class Question {
+  final String q;
+  final List<String> options;
+  final int answer; // indeks poprawnej odpowiedzi w options
+
+  const Question({required this.q, required this.options, required this.answer});
+
+  factory Question.fromJson(Map<String, dynamic> json) {
+    final opts = (json['options'] as List<dynamic>? ?? const [])
+        .map((e) => e.toString())
+        .toList();
+    var ans = json['answer'] as int? ?? 0;
+    if (ans < 0 || ans >= opts.length) ans = 0;
+    return Question(q: json['q'] as String? ?? '', options: opts, answer: ans);
+  }
+}
+
 /// Cały dokument tekstu.
 class TextDocument {
   final int schemaVersion;
@@ -79,6 +97,7 @@ class TextDocument {
   final List<String> tags;
   final String? createdAt;
   final List<Paragraph> paragraphs;
+  final List<Question> questions;
 
   const TextDocument({
     required this.schemaVersion,
@@ -90,6 +109,7 @@ class TextDocument {
     this.tags = const [],
     this.createdAt,
     required this.paragraphs,
+    this.questions = const [],
   });
 
   factory TextDocument.fromJson(Map<String, dynamic> json) {
@@ -106,6 +126,9 @@ class TextDocument {
       createdAt: json['createdAt'] as String?,
       paragraphs: (json['paragraphs'] as List<dynamic>? ?? const [])
           .map((e) => Paragraph.fromJson(e as Map<String, dynamic>))
+          .toList(growable: false),
+      questions: (json['questions'] as List<dynamic>? ?? const [])
+          .map((e) => Question.fromJson(e as Map<String, dynamic>))
           .toList(growable: false),
     );
   }

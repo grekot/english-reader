@@ -10,6 +10,7 @@ import '../../data/recent_repository.dart';
 import '../../data/settings_repository.dart';
 import '../../data/stats_repository.dart';
 import '../glossary/glossary_screen.dart';
+import '../quiz/quiz_screen.dart';
 import '../../data/text_repository.dart';
 import '../../data/vocab_repository.dart';
 import '../../models/text_document.dart';
@@ -162,6 +163,18 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         title: Text(widget.entry.title,
             maxLines: 1, overflow: TextOverflow.ellipsis),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.quiz),
+            tooltip: 'Quiz',
+            onPressed: docAsync.value == null
+                ? null
+                : () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            QuizMenuScreen(doc: docAsync.value!),
+                      ),
+                    ),
+          ),
           IconButton(
             icon: const Icon(Icons.menu_book),
             tooltip: 'Glosariusz (sprawdzone słowa)',
