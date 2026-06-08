@@ -32,6 +32,25 @@ jobs:
       - run: flutter --version
       - run: flutter pub get
 
+      # Odtwórz keystore i key.properties z sekretów repozytorium.
+      # Wymagane sekrety (Settings > Secrets and variables > Actions):
+      #   ANDROID_KEYSTORE_BASE64, ANDROID_STORE_PASSWORD,
+      #   ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+      - name: Konfiguracja podpisywania (release)
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PW: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PW: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > android/app/upload-keystore.jks
+          cat > android/key.properties <<EOF
+          storeFile=upload-keystore.jks
+          storePassword=$STORE_PW
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PW
+          EOF
+
       # build-name pobierany z tagu (np. v1.0.1 -> 1.0.1)
       - name: Build APK
         run: |
