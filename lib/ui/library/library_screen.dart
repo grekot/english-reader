@@ -10,6 +10,17 @@ import '../update/update_checker.dart';
 import '../vocab/vocab_screen.dart';
 import 'text_list_screen.dart';
 
+/// Poprawna polska odmiana rzeczownika "tekst" przez liczebnik.
+String _plTexts(int n) {
+  final mod10 = n % 10;
+  final mod100 = n % 100;
+  if (n == 1) return '1 tekst';
+  if (mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14)) {
+    return '$n teksty';
+  }
+  return '$n tekstów';
+}
+
 class LibraryScreen extends ConsumerWidget {
   const LibraryScreen({super.key});
 
@@ -105,7 +116,7 @@ class LibraryScreen extends ConsumerWidget {
         ListTile(
           leading: const Icon(Icons.history),
           title: const Text('Ostatnio używane'),
-          subtitle: Text('${recent.length} tekstów'),
+          subtitle: Text(_plTexts(recent.length)),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => open('Ostatnio używane', recent,
               empty: 'Nic jeszcze nie czytałeś.'),
@@ -114,7 +125,7 @@ class LibraryScreen extends ConsumerWidget {
         ListTile(
           leading: const Icon(Icons.star, color: Colors.amber),
           title: const Text('Ulubione'),
-          subtitle: Text('${favorites.length} tekstów'),
+          subtitle: Text(_plTexts(favorites.length)),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => open('Ulubione', favorites,
               empty: 'Brak ulubionych. Dodaj gwiazdką na liście tekstów.'),
@@ -125,7 +136,7 @@ class LibraryScreen extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.folder_outlined),
             title: Text(entry.key),
-            subtitle: Text('${entry.value} tekstów'),
+            subtitle: Text(_plTexts(entry.value)),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => open(
               entry.key,
