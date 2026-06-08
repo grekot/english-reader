@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
@@ -84,10 +85,16 @@ class TextRepository {
     final cacheFile = await _cacheFile(entry.id);
     if (await cacheFile.exists()) {
       try {
-        return _parse(await cacheFile.readAsString());
+        final cached = await cacheFile.readAsString();
+        // Cache jest aktualny tylko, gdy zgadza się z sha256 z katalogu.
+        // Brak sha256 w katalogu => ufamy cache (offline / brak weryfikacji).
+        final fresh = entry.sha256 == null ||
+            sha256.convert(utf8.encode(cached)).toString() == entry.sha256;
+        if (fresh) return _parse(cached);
       } catch (_) {/* uszkodzony cache — pobierz ponownie */}
     }
 
+    // Cache nieaktualny/uszkodzony lub brak — pobierz świeżą wersję.
     final raw = await _github.fetchTextFile(entry.file);
     await cacheFile.writeAsString(raw);
     return _parse(raw);
