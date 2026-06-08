@@ -28,10 +28,36 @@ def sha256_of(path):
     return hashlib.sha256(data).hexdigest()
 
 
+def choose_category(categories, default):
+    """Interaktywny wybór kategorii: numer z listy, nowa nazwa albo Enter."""
+    print()
+    print('Wybierz kategorię:')
+    for i, c in enumerate(categories, 1):
+        marker = '  (domyślna)' if c == default else ''
+        print('  %d) %s%s' % (i, c, marker))
+    print('  [Enter] = %s' % default)
+    print('  …albo wpisz nazwę nowej kategorii')
+    try:
+        raw = input('Wybór: ').lstrip('﻿').strip()
+    except EOFError:
+        return default
+    if not raw:
+        return default
+    if raw.isdigit():
+        n = int(raw)
+        if 1 <= n <= len(categories):
+            return categories[n - 1]
+        print('Numer poza zakresem — używam:', default)
+        return default
+    return raw
+
+
 def main():
     parser = argparse.ArgumentParser(description='Dodaj/aktualizuj tekst w index.json')
     parser.add_argument('file', help='ścieżka do pliku tekstu, np. texts/alice-ch01.json')
     parser.add_argument('-c', '--category', help='nazwa kategorii (np. "Lektury")')
+    parser.add_argument('-y', '--yes', action='store_true',
+                        help='bez pytań — użyj kategorii z pliku/istniejącej/"Ogólne"')
     args = parser.parse_args()
 
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -67,13 +93,26 @@ def main():
     # Znajdź istniejący wpis po id.
     existing = next((e for e in idx['texts'] if e.get('id') == text_id), None)
 
-    # Ustal kategorię: argument > pole w pliku > dotychczasowa > "Ogólne".
-    category = (
-        args.category
-        or doc.get('category')
+    # Domyślna kategoria: pole w pliku > dotychczasowa > "Ogólne".
+    default_category = (
+        doc.get('category')
         or (existing.get('category') if existing else None)
         or 'Ogólne'
     )
+
+    if args.category:
+        # Jawnie podana w argumencie — bez pytań.
+        category = args.category
+    elif args.yes:
+        # Tryb automatyczny — użyj domyślnej.
+        category = default_category
+    else:
+        # Tryb interaktywny — pokaż istniejące kategorie do wyboru.
+        existing_cats = sorted({e.get('category', 'Ogólne') for e in idx['texts']})
+        if default_category not in existing_cats:
+            existing_cats.append(default_category)
+            existing_cats = sorted(set(existing_cats))
+        category = choose_category(existing_cats, default_category)
 
     entry = {
         'id': text_id,
