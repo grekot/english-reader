@@ -16,12 +16,16 @@ class AppSettings {
   /// Język/akcent używany przez syntezator mowy (TTS).
   final String ttsLanguage;
 
+  /// Dzienny cel czytania w minutach.
+  final int dailyGoalMinutes;
+
   const AppSettings({
     this.darkMode = false,
     this.fontSize = 18,
     this.bubbleSeconds = 2,
     this.sentenceBubbleSeconds = 4,
     this.ttsLanguage = 'en-US',
+    this.dailyGoalMinutes = 10,
   });
 
   AppSettings copyWith({
@@ -30,6 +34,7 @@ class AppSettings {
     int? bubbleSeconds,
     int? sentenceBubbleSeconds,
     String? ttsLanguage,
+    int? dailyGoalMinutes,
   }) {
     return AppSettings(
       darkMode: darkMode ?? this.darkMode,
@@ -38,6 +43,7 @@ class AppSettings {
       sentenceBubbleSeconds:
           sentenceBubbleSeconds ?? this.sentenceBubbleSeconds,
       ttsLanguage: ttsLanguage ?? this.ttsLanguage,
+      dailyGoalMinutes: dailyGoalMinutes ?? this.dailyGoalMinutes,
     );
   }
 
@@ -47,6 +53,7 @@ class AppSettings {
         'bubbleSeconds': bubbleSeconds,
         'sentenceBubbleSeconds': sentenceBubbleSeconds,
         'ttsLanguage': ttsLanguage,
+        'dailyGoalMinutes': dailyGoalMinutes,
       };
 
   factory AppSettings.fromMap(Map<String, dynamic> map) {
@@ -56,6 +63,7 @@ class AppSettings {
       bubbleSeconds: map['bubbleSeconds'] as int? ?? 2,
       sentenceBubbleSeconds: map['sentenceBubbleSeconds'] as int? ?? 4,
       ttsLanguage: map['ttsLanguage'] as String? ?? 'en-US',
+      dailyGoalMinutes: map['dailyGoalMinutes'] as int? ?? 10,
     );
   }
 }

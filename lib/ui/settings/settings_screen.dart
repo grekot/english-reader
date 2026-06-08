@@ -61,6 +61,19 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const Divider(),
           ListTile(
+            title: const Text('Dzienny cel czytania'),
+            subtitle: Slider(
+              min: 5,
+              max: 60,
+              divisions: 11,
+              label: '${settings.dailyGoalMinutes} min',
+              value: settings.dailyGoalMinutes.toDouble(),
+              onChanged: (v) => ctrl.setDailyGoalMinutes(v.round()),
+            ),
+            trailing: Text('${settings.dailyGoalMinutes} min'),
+          ),
+          const Divider(),
+          ListTile(
             title: const Text('Język wymowy (TTS)'),
             trailing: DropdownButton<String>(
               value: settings.ttsLanguage,

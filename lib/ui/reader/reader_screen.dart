@@ -8,6 +8,7 @@ import '../../data/lookups_repository.dart';
 import '../../data/progress_repository.dart';
 import '../../data/recent_repository.dart';
 import '../../data/settings_repository.dart';
+import '../../data/stats_repository.dart';
 import '../glossary/glossary_screen.dart';
 import '../../data/text_repository.dart';
 import '../../data/vocab_repository.dart';
@@ -28,6 +29,7 @@ class ReaderScreen extends ConsumerStatefulWidget {
 class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   final BubbleManager _bubble = BubbleManager();
   final ScrollController _scroll = ScrollController();
+  final Stopwatch _readWatch = Stopwatch()..start();
   Timer? _saveDebounce;
   bool _restoredOffset = false;
 
@@ -43,6 +45,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
   @override
   void dispose() {
+    // Dolicz czas spędzony na czytaniu do statystyk dnia.
+    _readWatch.stop();
+    ref.read(statsControllerProvider.notifier).addReadingTime(_readWatch.elapsed);
     _bubble.hide();
     _saveDebounce?.cancel();
     _scroll.removeListener(_onScroll);

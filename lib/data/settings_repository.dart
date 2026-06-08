@@ -42,6 +42,9 @@ class SettingsController extends Notifier<AppSettings> {
 
   Future<void> setTtsLanguage(String value) =>
       _persist(state.copyWith(ttsLanguage: value));
+
+  Future<void> setDailyGoalMinutes(int value) =>
+      _persist(state.copyWith(dailyGoalMinutes: value));
 }
 
 final settingsControllerProvider =

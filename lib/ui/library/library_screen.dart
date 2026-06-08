@@ -12,6 +12,7 @@ import '../../models/text_document.dart';
 import '../manage/management_screen.dart';
 import '../reader/reader_screen.dart';
 import '../settings/settings_screen.dart';
+import '../stats/stats_screen.dart';
 import '../update/update_checker.dart';
 import '../vocab/vocab_screen.dart';
 import 'text_list_screen.dart';
@@ -50,6 +51,13 @@ class LibraryScreen extends ConsumerWidget {
             icon: const Icon(Icons.refresh),
             tooltip: 'Odśwież teksty',
             onPressed: () => ref.invalidate(catalogProvider),
+          ),
+          IconButton(
+            icon: const Icon(Icons.insights),
+            tooltip: 'Statystyki',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const StatsScreen()),
+            ),
           ),
           IconButton(
             icon: const Icon(Icons.style),
