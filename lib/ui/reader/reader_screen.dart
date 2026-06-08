@@ -75,6 +75,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     });
   }
 
+  /// Interakcja (kliknięcie słowa/zdania) podnosi postęp do głębokości danego
+  /// zdania w tekście — sprawdzenie zdania nr N implikuje przeczytanie do N.
+  void _registerInteraction(int globalSentenceIndex, int totalSentences) {
+    if (totalSentences <= 0) return;
+    final frac = (globalSentenceIndex + 1) / totalSentences;
+    ref.read(progressProvider.notifier).reachFraction(widget.entry.id, frac);
+  }
+
   void _showWordBubble(HitResult hit) {
     final token = hit.token!.token;
     final settings = ref.read(settingsControllerProvider);
@@ -170,6 +178,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
             height: 1.6,
             color: scheme.onSurface,
           );
+          // Globalny indeks zdań: baza dla każdego akapitu + łączna liczba zdań.
+          final sentenceBase = <int>[];
+          var acc = 0;
+          for (final p in doc.paragraphs) {
+            sentenceBase.add(acc);
+            acc += p.sentences.length;
+          }
+          final totalSentences = acc;
           return GestureDetector(
             // stuknięcie poza tekstem chowa dymek
             behavior: HitTestBehavior.translucent,
@@ -181,11 +197,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
               separatorBuilder: (_, _) => const SizedBox(height: 16),
               itemBuilder: (context, i) {
                 final mapped = MappedParagraph.build(doc.paragraphs[i]);
+                final base = sentenceBase[i];
                 return TappableParagraph(
                   paragraph: mapped,
                   style: style,
-                  onWordTap: _showWordBubble,
-                  onSentenceTap: _showSentenceBubble,
+                  onWordTap: (hit) {
+                    _showWordBubble(hit);
+                    _registerInteraction(
+                        base + hit.sentence.sentenceIndex, totalSentences);
+                  },
+                  onSentenceTap: (hit) {
+                    _showSentenceBubble(hit);
+                    _registerInteraction(
+                        base + hit.sentence.sentenceIndex, totalSentences);
+                  },
                 );
               },
             ),

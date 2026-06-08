@@ -42,6 +42,16 @@ class ProgressController extends Notifier<Map<String, double>> {
     if (next != cur) state = {...state, textId: next};
   }
 
+  /// Podnosi postęp do zadanego ułamka, jeśli jest większy niż obecny
+  /// (np. interakcja — kliknięcie słowa/zdania na danej głębokości tekstu).
+  Future<void> reachFraction(String textId, double fraction) async {
+    final cur = state[textId] ?? 0;
+    final f = fraction.clamp(0.0, 1.0);
+    if (f <= cur) return;
+    await _prefs.setDouble('$_kFractionPrefix$textId', f);
+    state = {...state, textId: f};
+  }
+
   /// Ręczne oznaczenie tekstu jako przeczytany (100%) / nieprzeczytany (0%).
   Future<void> setRead(String textId, bool read) async {
     final value = read ? 1.0 : 0.0;
