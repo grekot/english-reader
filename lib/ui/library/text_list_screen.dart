@@ -22,7 +22,7 @@ class TextListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final favorites = ref.watch(favoritesControllerProvider);
-    final progress = ref.read(progressRepositoryProvider);
+    final progress = ref.watch(progressProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text(title)),
@@ -39,7 +39,7 @@ class TextListScreen extends ConsumerWidget {
               separatorBuilder: (_, _) => const Divider(height: 1),
               itemBuilder: (context, i) {
                 final entry = entries[i];
-                final frac = progress.fraction(entry.id);
+                final frac = progress[entry.id] ?? 0;
                 final isFav = favorites.contains(entry.id);
                 return ListTile(
                   title: Text(entry.title),

@@ -54,9 +54,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       if (!_scroll.hasClients) return;
       final max = _scroll.position.maxScrollExtent;
       final offset = _scroll.offset;
-      final fraction = max > 0 ? offset / max : 0.0;
+      // Krótki tekst bez przewijania = przeczytany w całości (100%).
+      final fraction = max > 0 ? offset / max : 1.0;
       ref
-          .read(progressRepositoryProvider)
+          .read(progressProvider.notifier)
           .save(widget.entry.id, offset, fraction);
     });
   }
@@ -64,14 +65,18 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   void _restoreOffset() {
     if (_restoredOffset) return;
     _restoredOffset = true;
-    final saved = ref.read(progressRepositoryProvider).scrollOffset(widget.entry.id);
-    if (saved > 0) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scroll.hasClients) {
-          _scroll.jumpTo(saved.clamp(0, _scroll.position.maxScrollExtent));
-        }
-      });
-    }
+    final saved =
+        ref.read(progressProvider.notifier).scrollOffset(widget.entry.id);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scroll.hasClients) return;
+      final max = _scroll.position.maxScrollExtent;
+      if (saved > 0) {
+        _scroll.jumpTo(saved.clamp(0, max));
+      } else if (max == 0) {
+        // Tekst mieści się bez przewijania => przeczytany w całości.
+        ref.read(progressProvider.notifier).save(widget.entry.id, 0, 1.0);
+      }
+    });
   }
 
   void _showWordBubble(HitResult hit) {
