@@ -37,13 +37,24 @@ class ManagementService {
   Future<void> setRepoPath(String path) =>
       ref.read(sharedPreferencesProvider).setString(_kRepoPathKey, path);
 
+  /// Zwraca folder zawierający index.json: wybrany, albo jego rodzic (gdy ktoś
+  /// wskazał podfolder `texts`). null, gdy nie znaleziono.
+  String? resolveRepoRoot(String chosen) {
+    if (File('$chosen/index.json').existsSync()) return chosen;
+    final parent = Directory(chosen).parent.path;
+    if (File('$parent/index.json').existsSync()) return parent;
+    return null;
+  }
+
   File _indexFile(String repoPath) => File('$repoPath/index.json');
 
   /// Wczytuje wpisy z index.json i waliduje każdy tekst.
   Future<List<ManageEntry>> load(String repoPath) async {
     final idxFile = _indexFile(repoPath);
     if (!await idxFile.exists()) {
-      throw const FileSystemException('Brak index.json w wybranym folderze');
+      throw const FileSystemException(
+          'Brak index.json — wskaż główny folder repozytorium (ten, który '
+          'zawiera index.json oraz podfolder texts/), a nie sam folder texts.');
     }
     final idx = jsonDecode(await idxFile.readAsString()) as Map<String, dynamic>;
     final texts = (idx['texts'] as List<dynamic>? ?? const []);

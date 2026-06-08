@@ -42,8 +42,11 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen> {
       return;
     }
     if (dir == null) return; // anulowano
-    await ref.read(managementServiceProvider).setRepoPath(dir);
-    setState(() => _path = dir);
+    final service = ref.read(managementServiceProvider);
+    // Jeśli wskazano podfolder texts/, znajdź główny folder z index.json.
+    final resolved = service.resolveRepoRoot(dir) ?? dir;
+    await service.setRepoPath(resolved);
+    setState(() => _path = resolved);
     _load();
   }
 
