@@ -124,6 +124,10 @@ class CatalogEntry {
   /// Kategoria tekstu (do grupowania w bibliotece). Brak => "Ogólne".
   final String category;
 
+  /// Czy `file` to lokalna ścieżka na urządzeniu (tekst wczytany z pliku),
+  /// a nie ścieżka względna w repozytorium tekstów na GitHub.
+  final bool isLocal;
+
   const CatalogEntry({
     required this.id,
     required this.title,
@@ -133,6 +137,7 @@ class CatalogEntry {
     required this.file,
     this.sha256,
     this.category = 'Ogólne',
+    this.isLocal = false,
   });
 
   factory CatalogEntry.fromJson(Map<String, dynamic> json) {

@@ -77,6 +77,10 @@ class TextRepository {
 
   /// Wczytuje pełny dokument tekstu po wpisie katalogu.
   Future<TextDocument> loadDocument(CatalogEntry entry) async {
+    // tekst lokalny (wczytany z pliku na urządzeniu)
+    if (entry.isLocal) {
+      return _parse(await File(entry.file).readAsString());
+    }
     // wbudowany sample
     if (entry.file == _bundledSampleAsset) {
       return _loadBundledSample();

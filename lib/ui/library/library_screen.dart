@@ -1,10 +1,13 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/favorites_repository.dart';
+import '../../data/imported_repository.dart';
 import '../../data/recent_repository.dart';
 import '../../data/text_repository.dart';
 import '../../models/text_document.dart';
+import '../reader/reader_screen.dart';
 import '../settings/settings_screen.dart';
 import '../update/update_checker.dart';
 import '../vocab/vocab_screen.dart';
@@ -29,8 +32,14 @@ class LibraryScreen extends ConsumerWidget {
     final catalogAsync = ref.watch(catalogProvider);
     final recentIds = ref.watch(recentControllerProvider);
     final favoriteIds = ref.watch(favoritesControllerProvider);
+    final imported = ref.watch(importedControllerProvider);
 
     return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        icon: const Icon(Icons.file_open),
+        label: const Text('Wczytaj plik'),
+        onPressed: () => _importFile(context, ref),
+      ),
       appBar: AppBar(
         title: const Text('Biblioteka'),
         actions: [
@@ -72,13 +81,54 @@ class LibraryScreen extends ConsumerWidget {
           ),
           data: (entries) => _buildCategories(
             context,
-            entries: entries,
+            entries: [...entries, ...imported],
             recentIds: recentIds,
             favoriteIds: favoriteIds,
           ),
         ),
       ),
     );
+  }
+
+  /// Wczytuje tekst z pliku JSON z pamięci urządzenia i otwiera go.
+  Future<void> _importFile(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    FilePickerResult? res;
+    try {
+      res = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        withData: true,
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+          SnackBar(content: Text('Nie udało się otworzyć pliku: $e')));
+      return;
+    }
+    if (res == null) return; // anulowano
+    final bytes = res.files.single.bytes;
+    if (bytes == null) {
+      messenger.showSnackBar(
+          const SnackBar(content: Text('Nie udało się odczytać pliku.')));
+      return;
+    }
+    try {
+      final entry =
+          await ref.read(importedControllerProvider.notifier).importBytes(bytes);
+      messenger.showSnackBar(SnackBar(
+        content: Text('Wczytano: ${entry.title}'),
+        duration: const Duration(seconds: 1),
+      ));
+      navigator.push(
+        MaterialPageRoute(builder: (_) => ReaderScreen(entry: entry)),
+      );
+    } on FormatException catch (e) {
+      messenger.showSnackBar(
+          SnackBar(content: Text('Niepoprawny plik tekstu: ${e.message}')));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Błąd importu: $e')));
+    }
   }
 
   Widget _buildCategories(
