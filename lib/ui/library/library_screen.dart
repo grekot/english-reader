@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +9,7 @@ import '../../data/imported_repository.dart';
 import '../../data/recent_repository.dart';
 import '../../data/text_repository.dart';
 import '../../models/text_document.dart';
+import '../manage/management_screen.dart';
 import '../reader/reader_screen.dart';
 import '../settings/settings_screen.dart';
 import '../update/update_checker.dart';
@@ -60,6 +63,14 @@ class LibraryScreen extends ConsumerWidget {
             tooltip: 'Sprawdź aktualizacje',
             onPressed: () => checkForUpdateInteractive(context, ref),
           ),
+          if (Platform.isWindows)
+            IconButton(
+              icon: const Icon(Icons.admin_panel_settings),
+              tooltip: 'Zarządzanie tekstami',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ManagementScreen()),
+              ),
+            ),
           IconButton(
             icon: const Icon(Icons.settings),
             tooltip: 'Ustawienia',

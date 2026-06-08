@@ -35,6 +35,25 @@ class SentenceSpan {
   bool contains(int offset) => offset >= start && offset < end;
 }
 
+/// Znajduje wystąpienie `word` w `text` od pozycji `from`, preferując
+/// dopasowanie na granicy słowa (sąsiednie znaki nie są częścią słowa).
+/// Zwraca indeks początku lub -1, gdy nie znaleziono. Tej samej logiki używa
+/// czytnik (mapowanie stuknięć) oraz walidacja w trybie zarządzania.
+int findWordOccurrence(String text, String word, int from) {
+  if (word.isEmpty) return -1;
+  var index = text.indexOf(word, from);
+  while (index >= 0) {
+    final beforeOk = index == 0 || !_isWordChar(text[index - 1]);
+    final afterIndex = index + word.length;
+    final afterOk =
+        afterIndex >= text.length || !_isWordChar(text[afterIndex]);
+    if (beforeOk && afterOk) return index;
+    index = text.indexOf(word, index + 1);
+  }
+  // Fallback: pierwsze dopasowanie bez granicy słowa.
+  return text.indexOf(word, from);
+}
+
 /// Czy znak jest częścią słowa (litera/cyfra/apostrof/łącznik).
 bool _isWordChar(String ch) {
   if (ch.isEmpty) return false;
@@ -102,23 +121,8 @@ class MappedParagraph {
     );
   }
 
-  /// Znajduje wystąpienie `word` w `text` od pozycji `from`, preferując
-  /// dopasowanie na granicy słowa (sąsiednie znaki nie są częścią słowa).
-  static int _findWord(String text, String word, int from) {
-    if (word.isEmpty) return -1;
-    var index = text.indexOf(word, from);
-    while (index >= 0) {
-      final beforeOk =
-          index == 0 || !_isWordChar(text[index - 1]);
-      final afterIndex = index + word.length;
-      final afterOk =
-          afterIndex >= text.length || !_isWordChar(text[afterIndex]);
-      if (beforeOk && afterOk) return index;
-      index = text.indexOf(word, index + 1);
-    }
-    // Fallback: pierwsze dopasowanie bez granicy słowa.
-    return text.indexOf(word, from);
-  }
+  static int _findWord(String text, String word, int from) =>
+      findWordOccurrence(text, word, from);
 
   /// Token zawierający dany offset (lub null, jeśli to interpunkcja/spacja).
   TokenSpan? tokenAt(int offset) {
