@@ -74,6 +74,19 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const Divider(),
           ListTile(
+            title: const Text('Tempo lektora'),
+            subtitle: Slider(
+              min: 0.2,
+              max: 0.8,
+              divisions: 12,
+              label: settings.ttsRate.toStringAsFixed(2),
+              value: settings.ttsRate,
+              onChanged: ctrl.setTtsRate,
+            ),
+            trailing: Text(settings.ttsRate.toStringAsFixed(2)),
+          ),
+          const Divider(),
+          ListTile(
             title: const Text('Język wymowy (TTS)'),
             trailing: DropdownButton<String>(
               value: settings.ttsLanguage,

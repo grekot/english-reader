@@ -45,6 +45,9 @@ class SettingsController extends Notifier<AppSettings> {
 
   Future<void> setDailyGoalMinutes(int value) =>
       _persist(state.copyWith(dailyGoalMinutes: value));
+
+  Future<void> setTtsRate(double value) =>
+      _persist(state.copyWith(ttsRate: value));
 }
 
 final settingsControllerProvider =

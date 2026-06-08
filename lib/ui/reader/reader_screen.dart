@@ -15,6 +15,7 @@ import '../../data/text_repository.dart';
 import '../../data/vocab_repository.dart';
 import '../../models/text_document.dart';
 import '../../models/vocab_entry.dart';
+import '../../services/read_aloud.dart';
 import '../../services/tts_service.dart';
 import 'bubble.dart';
 import 'tappable_text.dart';
@@ -34,6 +35,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   Timer? _saveDebounce;
   bool _restoredOffset = false;
 
+  // Czytanie na głos
+  final ReadAloudPlayer _player = ReadAloudPlayer();
+  bool _playing = false;
+  int _hlPara = -1;
+  (int, int)? _hl;
+  List<MappedParagraph>? _mapped;
+  TextDocument? _mappedDoc;
+  List<GlobalKey> _paraKeys = const [];
+
   @override
   void initState() {
     super.initState();
@@ -49,11 +59,74 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     // Dolicz czas spędzony na czytaniu do statystyk dnia.
     _readWatch.stop();
     ref.read(statsControllerProvider.notifier).addReadingTime(_readWatch.elapsed);
+    _player.stop();
     _bubble.hide();
     _saveDebounce?.cancel();
     _scroll.removeListener(_onScroll);
     _scroll.dispose();
     super.dispose();
+  }
+
+  /// Buduje (i zapamiętuje) zmapowane akapity dla bieżącego dokumentu.
+  List<MappedParagraph> _ensureMapped(TextDocument doc) {
+    if (_mappedDoc != doc || _mapped == null) {
+      _mapped = doc.paragraphs.map(MappedParagraph.build).toList();
+      _mappedDoc = doc;
+      _paraKeys = List.generate(doc.paragraphs.length, (_) => GlobalKey());
+    }
+    return _mapped!;
+  }
+
+  Future<void> _toggleReadAloud(TextDocument doc) async {
+    if (_playing) {
+      await _player.stop();
+      setState(() {
+        _playing = false;
+        _hlPara = -1;
+        _hl = null;
+      });
+      return;
+    }
+    final mapped = _ensureMapped(doc);
+    final settings = ref.read(settingsControllerProvider);
+    _bubble.hide();
+    _player.onParagraph = (i) {
+      setState(() {
+        _hlPara = i;
+        _hl = null;
+      });
+      _ensureParaVisible(i);
+    };
+    _player.onWord = (i, start, end) {
+      if (!mounted) return;
+      setState(() {
+        _hlPara = i;
+        _hl = (start, end);
+      });
+    };
+    _player.onDone = () {
+      if (!mounted) return;
+      setState(() {
+        _playing = false;
+        _hlPara = -1;
+        _hl = null;
+      });
+    };
+    setState(() => _playing = true);
+    await _player.start(
+      [for (final m in mapped) m.text],
+      language: settings.ttsLanguage,
+      rate: settings.ttsRate,
+    );
+  }
+
+  void _ensureParaVisible(int i) {
+    if (i < 0 || i >= _paraKeys.length) return;
+    final ctx = _paraKeys[i].currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(ctx,
+          alignment: 0.1, duration: const Duration(milliseconds: 300));
+    }
   }
 
   void _onScroll() {
@@ -164,6 +237,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
             maxLines: 1, overflow: TextOverflow.ellipsis),
         actions: [
           IconButton(
+            icon: Icon(_playing ? Icons.stop : Icons.volume_up),
+            tooltip: _playing ? 'Zatrzymaj czytanie' : 'Czytaj na głos',
+            onPressed: docAsync.value == null
+                ? null
+                : () => _toggleReadAloud(docAsync.value!),
+          ),
+          IconButton(
             icon: const Icon(Icons.quiz),
             tooltip: 'Quiz',
             onPressed: docAsync.value == null
@@ -209,6 +289,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         ),
         data: (doc) {
           _restoreOffset();
+          final mappedList = _ensureMapped(doc);
           final style = TextStyle(
             fontSize: settings.fontSize,
             height: 1.6,
@@ -229,14 +310,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
             child: ListView.separated(
               controller: _scroll,
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 48),
-              itemCount: doc.paragraphs.length,
+              itemCount: mappedList.length,
               separatorBuilder: (_, _) => const SizedBox(height: 16),
               itemBuilder: (context, i) {
-                final mapped = MappedParagraph.build(doc.paragraphs[i]);
                 final base = sentenceBase[i];
                 return TappableParagraph(
-                  paragraph: mapped,
+                  key: _paraKeys[i],
+                  paragraph: mappedList[i],
                   style: style,
+                  highlight: _hlPara == i ? _hl : null,
                   onWordTap: (hit) {
                     _showWordBubble(hit);
                     _registerInteraction(

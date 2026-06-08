@@ -23,12 +23,16 @@ class TappableParagraph extends StatefulWidget {
   final void Function(HitResult hit) onWordTap;
   final void Function(HitResult hit) onSentenceTap;
 
+  /// Zakres [start, end) do podświetlenia (czytanie na głos) lub null.
+  final (int, int)? highlight;
+
   const TappableParagraph({
     super.key,
     required this.paragraph,
     required this.style,
     required this.onWordTap,
     required this.onSentenceTap,
+    this.highlight,
   });
 
   @override
@@ -112,7 +116,11 @@ class _TappableParagraphState extends State<TappableParagraph> {
           child: CustomPaint(
             key: _paintKey,
             size: Size(constraints.maxWidth, painter.height),
-            painter: _ParagraphPainter(painter),
+            painter: _ParagraphPainter(
+              painter,
+              widget.highlight,
+              Theme.of(context).colorScheme.primary.withValues(alpha: 0.30),
+            ),
           ),
         );
       },
@@ -122,14 +130,32 @@ class _TappableParagraphState extends State<TappableParagraph> {
 
 class _ParagraphPainter extends CustomPainter {
   final TextPainter painter;
-  _ParagraphPainter(this.painter);
+  final (int, int)? highlight;
+  final Color highlightColor;
+  _ParagraphPainter(this.painter, this.highlight, this.highlightColor);
 
   @override
   void paint(Canvas canvas, Size size) {
+    final hl = highlight;
+    if (hl != null && hl.$2 > hl.$1) {
+      final boxes = painter.getBoxesForSelection(
+        TextSelection(baseOffset: hl.$1, extentOffset: hl.$2),
+      );
+      final paint = Paint()..color = highlightColor;
+      for (final b in boxes) {
+        final r = RRect.fromRectAndRadius(
+          b.toRect().inflate(1.5),
+          const Radius.circular(3),
+        );
+        canvas.drawRRect(r, paint);
+      }
+    }
     painter.paint(canvas, Offset.zero);
   }
 
   @override
   bool shouldRepaint(covariant _ParagraphPainter old) =>
-      old.painter != painter;
+      old.painter != painter ||
+      old.highlight != highlight ||
+      old.highlightColor != highlightColor;
 }
