@@ -25,11 +25,15 @@ class GithubService {
       fetchRaw(AppConfig.textUrl(relativePath));
 
   /// Pobiera metadane najnowszego wydania aplikacji z GitHub API.
-  Future<Map<String, dynamic>> fetchLatestRelease() async {
+  ///
+  /// Zwraca null, gdy repozytorium nie ma jeszcze żadnego wydania (HTTP 404) —
+  /// to nie jest błąd, po prostu brak aktualizacji.
+  Future<Map<String, dynamic>?> fetchLatestRelease() async {
     final res = await _client.get(
       Uri.parse(AppConfig.latestReleaseApiUrl),
       headers: {'Accept': 'application/vnd.github+json'},
     );
+    if (res.statusCode == 404) return null;
     if (res.statusCode != 200) {
       throw Exception('Błąd pobierania wydania: HTTP ${res.statusCode}');
     }

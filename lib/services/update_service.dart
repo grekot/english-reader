@@ -33,6 +33,7 @@ class UpdateService {
     final current = info.version;
 
     final release = await _github.fetchLatestRelease();
+    if (release == null) return null; // brak opublikowanych wydań
     final tag = (release['tag_name'] as String? ?? '').replaceFirst('v', '');
     if (tag.isEmpty) return null;
     if (!_isNewer(tag, current)) return null;
