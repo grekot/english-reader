@@ -20,6 +20,11 @@ class LibraryScreen extends ConsumerWidget {
         title: const Text('Biblioteka'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Odśwież teksty',
+            onPressed: () => ref.invalidate(catalogProvider),
+          ),
+          IconButton(
             icon: const Icon(Icons.style),
             tooltip: 'Fiszki',
             onPressed: () => Navigator.of(context).push(
