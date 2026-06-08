@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/offset_mapper.dart';
+import '../../data/lookups_repository.dart';
 import '../../data/progress_repository.dart';
 import '../../data/recent_repository.dart';
 import '../../data/settings_repository.dart';
+import '../glossary/glossary_screen.dart';
 import '../../data/text_repository.dart';
 import '../../data/vocab_repository.dart';
 import '../../models/text_document.dart';
@@ -85,6 +87,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
   void _showWordBubble(HitResult hit) {
     final token = hit.token!.token;
+    // Zapisz do glosariusza tekstu (słowa sprawdzone).
+    ref
+        .read(lookupsControllerProvider.notifier)
+        .record(widget.entry.id, token.w, token.t, token.lemma);
     final settings = ref.read(settingsControllerProvider);
     final tts = ref.read(ttsServiceProvider);
     final vocab = ref.read(vocabControllerProvider.notifier);
@@ -151,6 +157,18 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         title: Text(widget.entry.title,
             maxLines: 1, overflow: TextOverflow.ellipsis),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.menu_book),
+            tooltip: 'Glosariusz (sprawdzone słowa)',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => GlossaryScreen(
+                  textId: widget.entry.id,
+                  textTitle: widget.entry.title,
+                ),
+              ),
+            ),
+          ),
           IconButton(
             icon: Icon(isRead ? Icons.check_circle : Icons.check_circle_outline),
             color: isRead ? Colors.green : null,
