@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/progress_repository.dart';
+import '../../data/favorites_repository.dart';
+import '../../data/recent_repository.dart';
 import '../../data/text_repository.dart';
-import '../reader/reader_screen.dart';
+import '../../models/text_document.dart';
 import '../settings/settings_screen.dart';
 import '../update/update_checker.dart';
 import '../vocab/vocab_screen.dart';
+import 'text_list_screen.dart';
 
 class LibraryScreen extends ConsumerWidget {
   const LibraryScreen({super.key});
@@ -14,6 +16,8 @@ class LibraryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final catalogAsync = ref.watch(catalogProvider);
+    final recentIds = ref.watch(recentControllerProvider);
+    final favoriteIds = ref.watch(favoritesControllerProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -55,59 +59,80 @@ class LibraryScreen extends ConsumerWidget {
               Center(child: Text('Błąd katalogu: $e')),
             ],
           ),
-          data: (entries) {
-            if (entries.isEmpty) {
-              return const Center(child: Text('Brak tekstów w katalogu.'));
-            }
-            final progress = ref.read(progressRepositoryProvider);
-            return ListView.separated(
-              itemCount: entries.length,
-              separatorBuilder: (_, _) => const Divider(height: 1),
-              itemBuilder: (context, i) {
-                final entry = entries[i];
-                final frac = progress.fraction(entry.id);
-                return ListTile(
-                  title: Text(entry.title),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (entry.author != null) Text(entry.author!),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          if (entry.level != null) ...[
-                            Chip(
-                              label: Text(entry.level!),
-                              visualDensity: VisualDensity.compact,
-                              padding: EdgeInsets.zero,
-                            ),
-                            const SizedBox(width: 8),
-                          ],
-                          Expanded(
-                            child: LinearProgressIndicator(
-                              value: frac,
-                              minHeight: 6,
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text('${(frac * 100).round()}%'),
-                        ],
-                      ),
-                    ],
-                  ),
-                  isThreeLine: true,
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => ReaderScreen(entry: entry),
-                    ),
-                  ),
-                );
-              },
-            );
-          },
+          data: (entries) => _buildCategories(
+            context,
+            entries: entries,
+            recentIds: recentIds,
+            favoriteIds: favoriteIds,
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildCategories(
+    BuildContext context, {
+    required List<CatalogEntry> entries,
+    required List<String> recentIds,
+    required Set<String> favoriteIds,
+  }) {
+    final byId = {for (final e in entries) e.id: e};
+
+    // Ostatnio używane — w kolejności od najnowszych, tylko istniejące.
+    final recent = [
+      for (final id in recentIds)
+        if (byId.containsKey(id)) byId[id]!,
+    ];
+    // Ulubione.
+    final favorites = entries.where((e) => favoriteIds.contains(e.id)).toList();
+
+    // Kategorie — w kolejności pierwszego wystąpienia, z licznikami.
+    final categories = <String, int>{};
+    for (final e in entries) {
+      categories[e.category] = (categories[e.category] ?? 0) + 1;
+    }
+
+    void open(String title, List<CatalogEntry> list, {String? empty}) {
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) =>
+            TextListScreen(title: title, entries: list, emptyMessage: empty),
+      ));
+    }
+
+    return ListView(
+      children: [
+        // Zawsze pierwsza: ostatnio używane.
+        ListTile(
+          leading: const Icon(Icons.history),
+          title: const Text('Ostatnio używane'),
+          subtitle: Text('${recent.length} tekstów'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => open('Ostatnio używane', recent,
+              empty: 'Nic jeszcze nie czytałeś.'),
+        ),
+        // Ulubione.
+        ListTile(
+          leading: const Icon(Icons.star, color: Colors.amber),
+          title: const Text('Ulubione'),
+          subtitle: Text('${favorites.length} tekstów'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => open('Ulubione', favorites,
+              empty: 'Brak ulubionych. Dodaj gwiazdką na liście tekstów.'),
+        ),
+        const Divider(),
+        // Kategorie.
+        for (final entry in categories.entries)
+          ListTile(
+            leading: const Icon(Icons.folder_outlined),
+            title: Text(entry.key),
+            subtitle: Text('${entry.value} tekstów'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => open(
+              entry.key,
+              entries.where((e) => e.category == entry.key).toList(),
+            ),
+          ),
+      ],
     );
   }
 }

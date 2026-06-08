@@ -121,6 +121,9 @@ class CatalogEntry {
   final String file;
   final String? sha256;
 
+  /// Kategoria tekstu (do grupowania w bibliotece). Brak => "Ogólne".
+  final String category;
+
   const CatalogEntry({
     required this.id,
     required this.title,
@@ -129,9 +132,11 @@ class CatalogEntry {
     this.tags = const [],
     required this.file,
     this.sha256,
+    this.category = 'Ogólne',
   });
 
   factory CatalogEntry.fromJson(Map<String, dynamic> json) {
+    final cat = (json['category'] as String?)?.trim();
     return CatalogEntry(
       id: json['id'] as String,
       title: json['title'] as String? ?? json['id'] as String,
@@ -142,6 +147,7 @@ class CatalogEntry {
           .toList(growable: false),
       file: json['file'] as String,
       sha256: json['sha256'] as String?,
+      category: (cat == null || cat.isEmpty) ? 'Ogólne' : cat,
     );
   }
 }

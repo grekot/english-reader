@@ -132,18 +132,26 @@ Zanim zapiszesz plik, sprawdź każde zdanie:
 ## Publikacja (kroki końcowe)
 
 1. Zapisz plik jako `texts/<id>.json` (UTF-8).
-2. Policz `sha256` zawartości pliku.
-3. Dopisz/zmień wpis w `index.json`:
+2. Dopisz/zmień wpis w `index.json`:
    ```json
    { "id": "...", "title": "...", "author": "...", "level": "...",
-     "tags": ["..."], "file": "texts/<id>.json", "sha256": "<policzony hash>" }
+     "category": "Lektury", "tags": ["..."], "file": "texts/<id>.json",
+     "sha256": "<policzony hash>" }
    ```
-   oraz ustaw `updatedAt` na dzisiejszą datę.
+   - **`category`** (zalecane) — nazwa kategorii do grupowania w bibliotece,
+     np. `"Lektury"`, `"Wiadomości"`, `"Nauka"`, `"Dialogi"`. Teksty z tą samą
+     nazwą trafiają do jednej kategorii. Brak pola => kategoria `"Ogólne"`.
+   - Ustaw też `updatedAt` na dzisiejszą datę.
+3. Policz `sha256` pliku tekstu i wpisz do `index.json`. Najprościej uruchom
+   skrypt, który przeliczy wszystkie hashe automatycznie:
+   ```
+   python tools/reindex.py
+   ```
 4. Commit + push do gałęzi `main`. Aplikacja wykryje zmianę przy następnym
-   odświeżeniu katalogu (pociągnięcie listy w dół / restart).
+   odświeżeniu katalogu (przycisk „Odśwież" / pociągnięcie listy / restart).
 
 > Aplikacja używa `sha256`, by wykryć, że tekst się zmienił. Po KAŻDEJ edycji
-> pliku tekstu zaktualizuj jego `sha256` w `index.json`.
+> pliku tekstu zaktualizuj jego `sha256` w `index.json` (najlepiej `reindex.py`).
 
 ---
 

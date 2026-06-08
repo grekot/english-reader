@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/offset_mapper.dart';
 import '../../data/progress_repository.dart';
+import '../../data/recent_repository.dart';
 import '../../data/settings_repository.dart';
 import '../../data/text_repository.dart';
 import '../../data/vocab_repository.dart';
@@ -32,6 +33,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   void initState() {
     super.initState();
     _scroll.addListener(_onScroll);
+    // Zapisz tekst jako ostatnio otwarty (do listy "Ostatnio używane").
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(recentControllerProvider.notifier).markOpened(widget.entry.id);
+    });
   }
 
   @override
