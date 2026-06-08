@@ -63,8 +63,9 @@ w zdanie (tłumaczenie całego zdania). Twój plik dostarcza te tłumaczenia.
 
 ### Pola tokenu
 - `w` (wymagane) — słowo dokładnie tak, jak występuje w `en`.
-- `t` (opcjonalne) — polskie tłumaczenie **dopasowane do kontekstu** tego zdania.
-- `lemma` (opcjonalne) — angielska **forma podstawowa**.
+- `t` (wymagane) — polskie tłumaczenie **dopasowane do kontekstu** tego zdania
+  (dla każdego słowa, także funkcyjnego — patrz zasada 6).
+- `lemma` (wymagane dla słów odmiennych) — angielska **forma podstawowa**.
 
 ---
 
@@ -97,9 +98,14 @@ Aplikacja sama wylicza pozycje słów, dopasowując kolejno każde `w` w tekści
    - czasownik → bezokolicznik: `went` → lemma `go`, `was` → lemma `be`,
    - rzeczownik → liczba pojedyncza: `pictures` → lemma `picture`,
    - przymiotnik/przysłówek → stopień równy: `better` → lemma `good`.
-6. **Słowa funkcyjne bardzo częste i oczywiste** (`the`, `a`, `an`, `to`, `of`,
-   `and`, `or`, `in`, `on`) możesz zostawić jako sam `{ "w": "..." }` bez `t`/`lemma`.
-   (Można je stuknąć, ale dymek pokaże „—”.)
+6. **Tłumacz KAŻDE słowo** — także słowa funkcyjne. Każdy token ma mieć `t`
+   i `lemma`. Dla słów, które nie mają polskiego odpowiednika, użyj krótkiego
+   opisu w nawiasie:
+   - przedimek określony `the` → `t: "(przedimek określony)"`,
+   - przedimek nieokreślony `a`/`an` → `t: "(przedimek nieokreślony)"`,
+   - partykuła bezokolicznika `to` (np. w „to get") → `t: "(bezokolicznik)"`.
+   Pozostałe słowa funkcyjne tłumacz kontekstowo: `or` → „lub/albo/ani”,
+   `of` → „z/od”, `and` → „i/a”, `in` → „w”, `on` → „na”.
 7. **Nazwy własne:** `t` = polski odpowiednik, jeśli istnieje (`Alice` → „Alicja”,
    `London` → „Londyn”); w innym razie `t` = oryginał. `lemma` można pominąć.
 8. **Idiomy i frazy:** sens oddaj w `pl` (tłumaczenie całego zdania). W `t`
@@ -173,11 +179,11 @@ Zanim zapiszesz plik, sprawdź każde zdanie:
             { "w": "Alice", "t": "Alicja", "lemma": "Alice" },
             { "w": "was", "t": "była", "lemma": "be" },
             { "w": "beginning", "t": "zaczynała", "lemma": "begin" },
-            { "w": "to" },
+            { "w": "to", "t": "(bezokolicznik)", "lemma": "to" },
             { "w": "get", "t": "stawać się", "lemma": "get" },
             { "w": "very", "t": "bardzo", "lemma": "very" },
             { "w": "tired", "t": "zmęczona", "lemma": "tired" },
-            { "w": "of" },
+            { "w": "of", "t": "z", "lemma": "of" },
             { "w": "sitting", "t": "siedzeniem", "lemma": "sit" },
             { "w": "by", "t": "przy", "lemma": "by" },
             { "w": "her", "t": "swojej", "lemma": "her" },
