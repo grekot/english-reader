@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "id": "alice-ch01",
+  "title": "Alice's Adventures in Wonderland — Chapter 1 (fragment)",
+  "author": "Lewis Carroll",
+  "source": "Project Gutenberg (public domain)",
+  "level": "B1",
+  "tags": ["fiction", "classic"],
+  "createdAt": "2026-06-08",
+  "paragraphs": [
+    {
+      "sentences": [
+        {
+          "en": "Alice was beginning to get very tired of sitting by her sister on the bank, and of having nothing to do.",
+          "pl": "Alicja zaczynała się bardzo nudzić siedzeniem przy swojej siostrze na brzegu rzeki i tym, że nie miała nic do roboty.",
+          "tokens": [
+            { "w": "Alice", "t": "Alicja", "lemma": "Alice" },
+            { "w": "was", "t": "była", "lemma": "be" },
+            { "w": "beginning", "t": "zaczynała", "lemma": "begin" },
+            { "w": "to" },
+            { "w": "get", "t": "stawać się", "lemma": "get" },
+            { "w": "very", "t": "bardzo", "lemma": "very" },
+            { "w": "tired", "t": "zmęczona", "lemma": "tired" },
+            { "w": "of" },
+            { "w": "sitting", "t": "siedzeniem", "lemma": "sit" },
+            { "w": "by", "t": "przy", "lemma": "by" },
+            { "w": "her", "t": "swojej", "lemma": "her" },
+            { "w": "sister", "t": "siostrze", "lemma": "sister" },
+            { "w": "on" },
+            { "w": "the" },
+            { "w": "bank", "t": "brzegu rzeki", "lemma": "bank" },
+            { "w": "and" },
+            { "w": "of" },
+            { "w": "having", "t": "mając", "lemma": "have" },
+            { "w": "nothing", "t": "nic", "lemma": "nothing" },
+            { "w": "to" },
+            { "w": "do", "t": "robić", "lemma": "do" }
+          ]
+        },
+        {
+          "en": "Once or twice she had peeped into the book her sister was reading, but it had no pictures or conversations in it.",
+          "pl": "Raz czy dwa zerknęła do książki, którą czytała jej siostra, ale nie było w niej obrazków ani rozmów.",
+          "tokens": [
+            { "w": "Once", "t": "raz", "lemma": "once" },
+            { "w": "or" },
+            { "w": "twice", "t": "dwa razy", "lemma": "twice" },
+            { "w": "she", "t": "ona", "lemma": "she" },
+            { "w": "had", "t": "miała", "lemma": "have" },
+            { "w": "peeped", "t": "zerknęła", "lemma": "peep" },
+            { "w": "into", "t": "do", "lemma": "into" },
+            { "w": "the" },
+            { "w": "book", "t": "książki", "lemma": "book" },
+            { "w": "her", "t": "jej", "lemma": "her" },
+            { "w": "sister", "t": "siostra", "lemma": "sister" },
+            { "w": "was" },
+            { "w": "reading", "t": "czytała", "lemma": "read" },
+            { "w": "but", "t": "ale", "lemma": "but" },
+            { "w": "it", "t": "ona (książka)", "lemma": "it" },
+            { "w": "had", "t": "miała", "lemma": "have" },
+            { "w": "no", "t": "żadnych", "lemma": "no" },
+            { "w": "pictures", "t": "obrazków", "lemma": "picture" },
+            { "w": "or" },
+            { "w": "conversations", "t": "rozmów", "lemma": "conversation" },
+            { "w": "in" },
+            { "w": "it", "t": "niej", "lemma": "it" }
+          ]
+        }
+      ]
+    },
+    {
+      "sentences": [
+        {
+          "en": "\"And what is the use of a book,\" thought Alice, \"without pictures or conversations?\"",
+          "pl": "„A na co komu książka — pomyślała Alicja — bez obrazków albo rozmów?”",
+          "tokens": [
+            { "w": "And" },
+            { "w": "what", "t": "co", "lemma": "what" },
+            { "w": "is", "t": "jest", "lemma": "be" },
+            { "w": "the" },
+            { "w": "use", "t": "pożytek", "lemma": "use" },
+            { "w": "of" },
+            { "w": "a" },
+            { "w": "book", "t": "książka", "lemma": "book" },
+            { "w": "thought", "t": "pomyślała", "lemma": "think" },
+            { "w": "Alice", "t": "Alicja", "lemma": "Alice" },
+            { "w": "without", "t": "bez", "lemma": "without" },
+            { "w": "pictures", "t": "obrazków", "lemma": "picture" },
+            { "w": "or" },
+            { "w": "conversations", "t": "rozmów", "lemma": "conversation" }
+          ]
+        }
+      ]
+    }
+  ]
+}

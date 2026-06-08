@@ -1,0 +1,4 @@
+# Repozytorium zawiera wyłącznie dane (JSON) i dokumentację.
+# Nic do ignorowania poza plikami tymczasowymi systemu.
+.DS_Store
+Thumbs.db
