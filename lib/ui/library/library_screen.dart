@@ -115,7 +115,7 @@ class LibraryScreen extends ConsumerWidget {
     final navigator = Navigator.of(context);
     FilePickerResult? res;
     try {
-      res = await FilePicker.platform.pickFiles(
+      res = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['json'],
         withData: true,

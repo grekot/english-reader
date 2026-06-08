@@ -29,7 +29,10 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen> {
   Future<void> _chooseFolder() async {
     String? dir;
     try {
-      dir = await FilePicker.platform.getDirectoryPath(lockParentWindow: true);
+      dir = await FilePicker.getDirectoryPath(
+        lockParentWindow: true,
+        dialogTitle: 'Wybierz folder repozytorium tekstów (z index.json)',
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
