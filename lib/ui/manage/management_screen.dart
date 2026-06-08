@@ -27,8 +27,18 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen> {
   }
 
   Future<void> _chooseFolder() async {
-    final dir = await FilePicker.platform.getDirectoryPath();
-    if (dir == null) return;
+    String? dir;
+    try {
+      dir = await FilePicker.platform.getDirectoryPath(lockParentWindow: true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Nie udało się otworzyć okna wyboru: $e')),
+        );
+      }
+      return;
+    }
+    if (dir == null) return; // anulowano
     await ref.read(managementServiceProvider).setRepoPath(dir);
     setState(() => _path = dir);
     _load();

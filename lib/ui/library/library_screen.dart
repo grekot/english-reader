@@ -119,6 +119,7 @@ class LibraryScreen extends ConsumerWidget {
         type: FileType.custom,
         allowedExtensions: ['json'],
         withData: true,
+        lockParentWindow: true,
       );
     } catch (e) {
       messenger.showSnackBar(
