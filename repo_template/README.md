@@ -6,22 +6,29 @@ Musi być **publiczne** (aplikacja pobiera pliki bez logowania).
 ## Struktura
 
 ```
-index.json            # katalog wszystkich tekstów
+index.json            # katalog wszystkich tekstów (kategorie, sha256)
 texts/<id>.json       # pojedyncze teksty (z tłumaczeniami słów i zdań)
 AGENT_INSTRUCTIONS.md # instrukcja dla agenta AI tworzącego teksty
+tools/add_text.py     # dodaje/aktualizuje wpis w index.json + liczy sha256
+tools/reindex.py      # przelicza sha256 wszystkich tekstów
 ```
 
 ## Jak dodać nowy tekst
 
 1. Wygeneruj plik `texts/<id>.json` zgodnie z `AGENT_INSTRUCTIONS.md`.
-2. Policz sumę kontrolną:
+2. Dodaj go do katalogu jednym poleceniem (metadane bierze z pliku, liczy sha256):
    ```powershell
-   (Get-FileHash -Algorithm SHA256 texts\<id>.json).Hash.ToLower()
+   python tools\add_text.py texts\<id>.json --category "Lektury"
    ```
-3. Dopisz wpis do `index.json` (z policzonym `sha256`) i zaktualizuj `updatedAt`.
-4. `git add . && git commit -m "Dodaj <id>" && git push`.
+   - `--category` ustawia kategorię w bibliotece (np. „Lektury", „Wiadomości").
+     Pominięte = kategoria z pliku tekstu, inaczej „Ogólne".
+   - Skrypt aktualizuje istniejący wpis (po `id`) albo dodaje nowy.
+3. `git add . && git commit -m "Dodaj <id>" && git push`.
 
-Aplikacja zobaczy nowy tekst po odświeżeniu katalogu (pociągnięcie listy w dół).
+> Po RĘCZNEJ edycji już dodanego tekstu wystarczy `python tools\reindex.py`,
+> aby przeliczyć `sha256` (inaczej aplikacja pokaże starą wersję z cache).
+
+Aplikacja zobaczy zmiany po odświeżeniu katalogu (przycisk „Odśwież" / restart).
 
 ## Konfiguracja w aplikacji
 

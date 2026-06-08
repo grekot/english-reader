@@ -1,0 +1,5 @@
+# Wymuś końce linii LF, by sha256 plików zgadzał się z tym, co serwuje GitHub
+# (raw.githubusercontent) i co liczy aplikacja.
+* text=auto eol=lf
+*.json text eol=lf
+*.md text eol=lf
