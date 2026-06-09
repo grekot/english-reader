@@ -97,14 +97,36 @@ void _runAndroidInstall(
     const SnackBar(content: Text('Pobieranie aktualizacji…')),
   );
   try {
-    service.installApk(apkUrl).listen((event) {
-      if (event.status == OtaStatus.DOWNLOAD_ERROR ||
-          event.status == OtaStatus.INTERNAL_ERROR) {
+    service.installApk(apkUrl).listen(
+      (event) {
+        switch (event.status) {
+          case OtaStatus.DOWNLOADING:
+            // event.value to procent — pokaż okazjonalnie
+            break;
+          case OtaStatus.INSTALLING:
+            messenger.showSnackBar(
+              const SnackBar(content: Text('Uruchamiam instalację…')),
+            );
+            break;
+          case OtaStatus.DOWNLOAD_ERROR:
+          case OtaStatus.INTERNAL_ERROR:
+          case OtaStatus.PERMISSION_NOT_GRANTED_ERROR:
+          case OtaStatus.CHECKSUM_ERROR:
+            messenger.showSnackBar(
+              SnackBar(content: Text('Błąd aktualizacji: ${event.value}')),
+            );
+            break;
+          default:
+            break;
+        }
+      },
+      onError: (e) {
         messenger.showSnackBar(
-          SnackBar(content: Text('Błąd aktualizacji: ${event.value}')),
+          SnackBar(content: Text('Błąd aktualizacji: $e')),
         );
-      }
-    });
+      },
+      cancelOnError: true,
+    );
   } catch (e) {
     messenger.showSnackBar(
       SnackBar(content: Text('Nie udało się rozpocząć aktualizacji: $e')),
