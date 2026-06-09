@@ -129,29 +129,38 @@ class _QuizRunnerScreenState extends State<QuizRunnerScreen> {
               minHeight: 6,
               borderRadius: BorderRadius.circular(3),
             ),
-            const SizedBox(height: 28),
-            if (q.hint != null)
-              Text(q.hint!,
-                  style: Theme.of(context).textTheme.bodySmall,
-                  textAlign: TextAlign.center),
-            const SizedBox(height: 8),
-            Text(q.prompt,
-                style: Theme.of(context).textTheme.headlineSmall,
-                textAlign: TextAlign.center),
-            const SizedBox(height: 28),
-            for (var i = 0; i < q.options.length; i++)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _optionButton(i, q, scheme),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 28),
+                    if (q.hint != null)
+                      Text(q.hint!,
+                          style: Theme.of(context).textTheme.bodySmall,
+                          textAlign: TextAlign.center),
+                    const SizedBox(height: 8),
+                    Text(q.prompt,
+                        style: Theme.of(context).textTheme.headlineSmall,
+                        textAlign: TextAlign.center),
+                    const SizedBox(height: 28),
+                    for (var i = 0; i < q.options.length; i++)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _optionButton(i, q, scheme),
+                      ),
+                    const SizedBox(height: 12),
+                    if (_selected != null)
+                      FilledButton(
+                        onPressed: _next,
+                        child: Text(_index + 1 >= widget.questions.length
+                            ? 'Zakończ'
+                            : 'Następne'),
+                      ),
+                  ],
+                ),
               ),
-            const Spacer(),
-            if (_selected != null)
-              FilledButton(
-                onPressed: _next,
-                child: Text(_index + 1 >= widget.questions.length
-                    ? 'Zakończ'
-                    : 'Następne'),
-              ),
+            ),
           ],
         ),
       ),
