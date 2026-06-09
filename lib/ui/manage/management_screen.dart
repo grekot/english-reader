@@ -107,6 +107,30 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen> {
     }
   }
 
+  Future<void> _publish() async {
+    final message = await showDialog<String>(
+      context: context,
+      builder: (_) => const _CommitDialog(),
+    );
+    if (message == null || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(const SnackBar(
+      content: Text('Publikowanie na GitHub…'),
+      duration: Duration(seconds: 2),
+    ));
+    try {
+      final result =
+          await ref.read(managementServiceProvider).gitPublish(_path!, message);
+      messenger.showSnackBar(SnackBar(content: Text(result)));
+      _load();
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(
+        content: Text('$e'),
+        duration: const Duration(seconds: 8),
+      ));
+    }
+  }
+
   Future<void> _refreshChecksums() async {
     final messenger = ScaffoldMessenger.of(context);
     try {
@@ -126,6 +150,11 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen> {
       appBar: AppBar(
         title: const Text('Zarządzanie tekstami'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.cloud_upload),
+            tooltip: 'Publikuj na GitHub (commit + push)',
+            onPressed: _path == null ? null : _publish,
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Odśwież',
@@ -355,6 +384,60 @@ class _CategoryDialogState extends State<_CategoryDialog> {
           onPressed: () => Navigator.of(context).pop(
               _ctrl.text.trim().isEmpty ? 'Ogólne' : _ctrl.text.trim()),
           child: const Text('Dodaj'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Dialog z treścią commita przed publikacją.
+class _CommitDialog extends StatefulWidget {
+  const _CommitDialog();
+
+  @override
+  State<_CommitDialog> createState() => _CommitDialogState();
+}
+
+class _CommitDialogState extends State<_CommitDialog> {
+  final _ctrl = TextEditingController(text: 'Aktualizacja tekstów');
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Publikuj na GitHub'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Wykona: git add -A → commit → push. '
+            'Wymaga zapamiętanego logowania do GitHub.',
+            style: TextStyle(fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _ctrl,
+            decoration: const InputDecoration(labelText: 'Opis zmian (commit)'),
+            autofocus: true,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Anuluj'),
+        ),
+        FilledButton(
+          onPressed: () {
+            final t = _ctrl.text.trim();
+            Navigator.of(context).pop(t.isEmpty ? 'Aktualizacja tekstów' : t);
+          },
+          child: const Text('Publikuj'),
         ),
       ],
     );

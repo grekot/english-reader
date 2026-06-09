@@ -155,6 +155,54 @@ class ManagementService {
     await _stampAndWrite(idxFile, idx);
   }
 
+  /// Czy w repo są niezapisane zmiany lub niewypchnięte commity (do podświetlenia
+  /// przycisku publikacji). Zwraca null, gdy to nie jest repozytorium git.
+  Future<bool?> hasPendingGitChanges(String repoPath) async {
+    try {
+      final status = await Process.run('git', ['status', '--porcelain'],
+          workingDirectory: repoPath);
+      if (status.exitCode != 0) return null; // nie repo / brak gita
+      if ((status.stdout as String).trim().isNotEmpty) return true;
+      final ahead = await Process.run(
+          'git', ['rev-list', '--count', '@{u}..HEAD'],
+          workingDirectory: repoPath);
+      if (ahead.exitCode != 0) return false; // brak upstreamu — traktuj jako brak
+      return int.tryParse((ahead.stdout as String).trim()) != 0;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Wykonuje git add -A, commit i push w folderze repo. Rzuca wyjątek z
+  /// komunikatem, gdy push się nie powiedzie (np. wymaga logowania).
+  Future<String> gitPublish(String repoPath, String message) async {
+    Future<ProcessResult> run(List<String> args) =>
+        Process.run('git', args, workingDirectory: repoPath);
+
+    final isRepo = await run(['rev-parse', '--is-inside-work-tree']);
+    if (isRepo.exitCode != 0) {
+      throw Exception('To nie jest repozytorium git (brak .git w folderze).');
+    }
+
+    final add = await run(['add', '-A']);
+    if (add.exitCode != 0) {
+      throw Exception('git add nie powiódł się:\n${add.stderr}');
+    }
+    // commit może się "nie udać", gdy nie ma zmian — to nie błąd.
+    final commit = await run(['commit', '-m', message]);
+    final committed = commit.exitCode == 0;
+
+    final push = await run(['push']);
+    if (push.exitCode != 0) {
+      throw Exception(
+          'git push nie powiódł się (sprawdź logowanie/sieć):\n'
+          '${(push.stderr as String).trim()}');
+    }
+    return committed
+        ? 'Wypchnięto nowy commit na GitHub.'
+        : 'Brak nowych zmian; wypchnięto ewentualne wcześniejsze commity.';
+  }
+
   /// Sprawdza poprawność tekstu: istnienie pliku, poprawność JSON oraz czy
   /// każde słowo `w` da się dopasować kolejno w `en`.
   Future<List<String>> _validate(
