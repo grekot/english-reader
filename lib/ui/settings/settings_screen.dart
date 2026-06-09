@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../data/settings_repository.dart';
 
@@ -98,6 +99,20 @@ class SettingsScreen extends ConsumerWidget {
                 if (v != null) ctrl.setTtsLanguage(v);
               },
             ),
+          ),
+          const Divider(),
+          FutureBuilder<PackageInfo>(
+            future: PackageInfo.fromPlatform(),
+            builder: (context, snap) {
+              final v = snap.hasData
+                  ? '${snap.data!.version} (build ${snap.data!.buildNumber})'
+                  : '…';
+              return ListTile(
+                leading: const Icon(Icons.info_outline),
+                title: const Text('Wersja aplikacji'),
+                subtitle: Text(v),
+              );
+            },
           ),
         ],
       ),
