@@ -79,10 +79,60 @@ Co zrobi automatycznie:
 
 ---
 
+## 3. Ranking rodzinny (Supabase)
+
+Ranking korzysta z tego samego projektu Supabase co aplikacja „Kalendazyk"
+(URL i anon key w `lib/core/supabase_config.dart`). Wystarczy **jednorazowo
+utworzyć tabelę** i politykę dostępu.
+
+W Supabase → **SQL Editor** uruchom:
+
+```sql
+create table if not exists public.reading_scores (
+  device_id       text primary key,
+  family_code     text not null,
+  display_name    text not null,
+  xp              int  not null default 0,
+  level           int  not null default 1,
+  streak          int  not null default 0,
+  reading_minutes int  not null default 0,
+  completed       int  not null default 0,
+  lookups         int  not null default 0,
+  quiz_correct    int  not null default 0,
+  updated_at      timestamptz not null default now()
+);
+
+create index if not exists reading_scores_family_idx
+  on public.reading_scores (family_code);
+
+alter table public.reading_scores enable row level security;
+
+-- Aplikacja działa bez logowania (rola anon). Tabela zawiera tylko nazwy i
+-- punkty, więc dostęp dla anon jest akceptowalny dla użytku rodzinnego.
+create policy "anon read"  on public.reading_scores for select to anon using (true);
+create policy "anon write" on public.reading_scores for insert to anon with check (true);
+create policy "anon update" on public.reading_scores for update to anon using (true) with check (true);
+```
+
+### Jak działa
+- Każde urządzenie ma lokalny identyfikator + **nazwę** i **kod rodziny**
+  (wpisywane raz w ekranie „Ranking rodzinny").
+- Aplikacja wysyła (upsert) wynik tego urządzenia i pobiera wszystkie wiersze
+  z tym samym `family_code`, sortując malejąco wg `xp`.
+- Domownicy wpisują ten sam kod rodziny → widzą wspólny ranking.
+
+> Uwaga prywatność: anon key jest publiczny, a polityki pozwalają na odczyt/zapis
+> bez logowania. To wystarcza dla rodzinnego użytku (tylko nazwy + punkty).
+> Jeśli chcesz większej kontroli — można dodać logowanie (jak w „Kalendazyku")
+> i zawęzić polityki RLS.
+
+---
+
 ## Lista kontrolna pierwszego uruchomienia
 
 - [ ] `git push` repo tekstów (`english-reader-texts`) i aplikacji (`english-reader`).
 - [ ] Dodaj 4 sekrety Android w repo aplikacji (2.2).
 - [ ] Zrób kopię zapasową `upload-keystore.jks` + haseł.
+- [ ] Utwórz tabelę `reading_scores` w Supabase (sekcja 3).
 - [ ] `git tag v1.0.0 && git push origin v1.0.0` → sprawdź, czy workflow zbudował Release.
-- [ ] Zainstaluj APK na telefonie, potem opublikuj `v1.0.1` i sprawdź auto-aktualizację.
+- [ ] Zainstaluj APK na telefonie, potem opublikuj kolejną wersję i sprawdź auto-aktualizację.

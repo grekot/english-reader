@@ -7,6 +7,7 @@ import '../../data/lookups_repository.dart';
 import '../../data/progress_repository.dart';
 import '../../data/settings_repository.dart';
 import '../../data/stats_repository.dart';
+import '../leaderboard/leaderboard_screen.dart';
 
 class StatsScreen extends ConsumerWidget {
   const StatsScreen({super.key});
@@ -47,7 +48,18 @@ class StatsScreen extends ConsumerWidget {
     final goalFrac = goalMin > 0 ? (todayMin / goalMin).clamp(0.0, 1.0) : 0.0;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Statystyki')),
+      appBar: AppBar(
+        title: const Text('Statystyki'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.leaderboard),
+            tooltip: 'Ranking rodzinny',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const LeaderboardScreen()),
+            ),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
