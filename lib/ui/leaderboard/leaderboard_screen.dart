@@ -74,7 +74,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
         ],
       ),
     );
-    if (confirm != true) return;
+    if (confirm != true || !mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     final family = ref.read(familyControllerProvider);
     var deleted = false;
