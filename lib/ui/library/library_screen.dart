@@ -13,7 +13,6 @@ import '../manage/management_screen.dart';
 import '../reader/reader_screen.dart';
 import '../settings/settings_screen.dart';
 import '../stats/stats_screen.dart';
-import '../update/update_checker.dart';
 import '../vocab/vocab_screen.dart';
 import 'text_list_screen.dart';
 
@@ -65,11 +64,6 @@ class LibraryScreen extends ConsumerWidget {
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const VocabScreen()),
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.system_update),
-            tooltip: 'Sprawdź aktualizacje',
-            onPressed: () => checkForUpdateInteractive(context, ref),
           ),
           if (Platform.isWindows)
             IconButton(

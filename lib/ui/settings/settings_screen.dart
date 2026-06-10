@@ -4,6 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../data/settings_repository.dart';
 import '../about/about_screen.dart';
+import '../update/update_checker.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -100,6 +101,13 @@ class SettingsScreen extends ConsumerWidget {
                 if (v != null) ctrl.setTtsLanguage(v);
               },
             ),
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.system_update),
+            title: const Text('Sprawdź aktualizacje'),
+            subtitle: const Text('Pobierz najnowszą wersję aplikacji'),
+            onTap: () => checkForUpdateInteractive(context, ref),
           ),
           const Divider(),
           FutureBuilder<PackageInfo>(
