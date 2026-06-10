@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -76,10 +77,43 @@ class UpdateService {
 
   bool get supportsInAppInstall => Platform.isAndroid;
 
-  /// Uruchamia pobranie i instalację APK (tylko Android). Zwraca strumień
-  /// zdarzeń postępu z pakietu ota_update.
-  Stream<OtaEvent> installApk(String apkUrl) {
-    return OtaUpdate().execute(apkUrl, destinationFilename: 'nauka_angielskiego.apk');
+  /// Rozwija przekierowania (GitHub `browser_download_url` → 302 do
+  /// objects.githubusercontent.com), zwracając finalny, bezpośredni URL.
+  /// Część klientów HTTP na Androidzie nie podąża za tym przekierowaniem,
+  /// co psuło pobieranie — dlatego robimy to sami.
+  Future<String> resolveDownloadUrl(String url) async {
+    final client = HttpClient()..connectionTimeout = const Duration(seconds: 20);
+    try {
+      var current = url;
+      for (var i = 0; i < 6; i++) {
+        final req = await client.getUrl(Uri.parse(current));
+        req.followRedirects = false;
+        final res = await req.close();
+        final code = res.statusCode;
+        if (code >= 300 && code < 400) {
+          final loc = res.headers.value(HttpHeaders.locationHeader);
+          unawaited(res.drain());
+          if (loc == null || loc.isEmpty) break;
+          current = Uri.parse(current).resolve(loc).toString();
+        } else {
+          unawaited(res.drain());
+          break;
+        }
+      }
+      return current;
+    } catch (_) {
+      return url; // w razie błędu spróbuj oryginalnego URL
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  /// Uruchamia pobranie i instalację APK (tylko Android). Plik zapisywany jest
+  /// pod unikalną nazwą per wersja, by nigdy nie zainstalować starego pliku.
+  Stream<OtaEvent> installApk(String apkUrl, {required String version}) {
+    final safe = version.replaceAll(RegExp(r'[^0-9A-Za-z.]'), '');
+    return OtaUpdate()
+        .execute(apkUrl, destinationFilename: 'english-reader-$safe.apk');
   }
 }
 

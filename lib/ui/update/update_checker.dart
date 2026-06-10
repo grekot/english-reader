@@ -67,7 +67,8 @@ Future<void> checkForUpdateInteractive(
           FilledButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              _runAndroidInstall(context, service, info!.apkUrl!);
+              _runAndroidInstall(
+                  context, service, info!.apkUrl!, info.latestVersion);
             },
             child: const Text('Aktualizuj'),
           )
@@ -87,17 +88,20 @@ Future<void> checkForUpdateInteractive(
   );
 }
 
-void _runAndroidInstall(
+Future<void> _runAndroidInstall(
   BuildContext context,
   UpdateService service,
   String apkUrl,
-) {
+  String version,
+) async {
   final messenger = ScaffoldMessenger.of(context);
   messenger.showSnackBar(
     const SnackBar(content: Text('Pobieranie aktualizacji…')),
   );
+  // Rozwiń przekierowanie GitHub do bezpośredniego URL (stabilne pobieranie).
+  final directUrl = await service.resolveDownloadUrl(apkUrl);
   try {
-    service.installApk(apkUrl).listen(
+    service.installApk(directUrl, version: version).listen(
       (event) {
         switch (event.status) {
           case OtaStatus.DOWNLOADING:
