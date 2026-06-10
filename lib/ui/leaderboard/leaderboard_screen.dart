@@ -75,14 +75,25 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
       ),
     );
     if (confirm != true) return;
+    final messenger = ScaffoldMessenger.of(context);
     final family = ref.read(familyControllerProvider);
+    var deleted = false;
     if (family != null) {
       try {
-        await ref.read(leaderboardServiceProvider).deleteScore(family.deviceId);
+        deleted =
+            await ref.read(leaderboardServiceProvider).deleteScore(family.deviceId);
       } catch (_) {/* nawet jeśli sieć padnie, wychodzimy lokalnie */}
     }
     await ref.read(familyControllerProvider.notifier).leave();
     if (mounted) setState(() => _future = null);
+    if (!deleted && mounted) {
+      messenger.showSnackBar(const SnackBar(
+        duration: Duration(seconds: 5),
+        content: Text(
+            'Opuszczono lokalnie, ale wpisu nie udało się usunąć z chmury. '
+            'Sprawdź połączenie lub politykę „delete" w Supabase.'),
+      ));
+    }
   }
 
   Future<void> _refresh() async {

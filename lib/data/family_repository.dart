@@ -135,8 +135,15 @@ class LeaderboardService {
   }
 
   /// Usuwa wpis tego urządzenia z rankingu (po opuszczeniu grupy).
-  Future<void> deleteScore(String deviceId) async {
-    await _client.from('reading_scores').delete().eq('device_id', deviceId);
+  /// Zwraca true, jeśli wiersz faktycznie został usunięty (przy braku polityki
+  /// delete w Supabase RLS po cichu nic nie usuwa — wtedy false).
+  Future<bool> deleteScore(String deviceId) async {
+    final res = await _client
+        .from('reading_scores')
+        .delete()
+        .eq('device_id', deviceId)
+        .select();
+    return (res as List).isNotEmpty;
   }
 
   /// Pobiera ranking dla danego kodu rodziny (malejąco wg XP).
