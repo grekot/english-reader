@@ -48,21 +48,23 @@ class StatsScreen extends ConsumerWidget {
     final goalFrac = goalMin > 0 ? (todayMin / goalMin).clamp(0.0, 1.0) : 0.0;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Statystyki'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.leaderboard),
-            tooltip: 'Ranking rodzinny',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const LeaderboardScreen()),
-            ),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Statystyki')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          Card(
+            color: Theme.of(context).colorScheme.tertiaryContainer,
+            child: ListTile(
+              leading: const Icon(Icons.leaderboard),
+              title: const Text('Ranking rodzinny'),
+              subtitle: const Text('Rywalizuj z domownikami'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const LeaderboardScreen()),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
           _levelCard(context, level, xp),
           const SizedBox(height: 8),
           _goalCard(context, todayMin, goalMin, goalFrac),
