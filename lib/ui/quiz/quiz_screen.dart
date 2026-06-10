@@ -179,7 +179,7 @@ class _QuizRunnerScreenState extends State<QuizRunnerScreen> {
     return OutlinedButton(
       style: OutlinedButton.styleFrom(
         backgroundColor: bg,
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
         alignment: Alignment.centerLeft,
       ),
       onPressed: _selected == null ? () => _choose(i) : null,
