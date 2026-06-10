@@ -1,8 +1,10 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/quiz_builder.dart';
+import '../../data/gamification_repository.dart';
 import '../../models/text_document.dart';
 
 /// Menu quizów dla tekstu: słówka (EN→PL, PL→EN) i pytania do tekstu.
@@ -74,16 +76,16 @@ class QuizMenuScreen extends StatelessWidget {
 }
 
 /// Przebieg quizu: kolejne pytania wielokrotnego wyboru z natychmiastową oceną.
-class QuizRunnerScreen extends StatefulWidget {
+class QuizRunnerScreen extends ConsumerStatefulWidget {
   final String title;
   final List<QuizQuestion> questions;
   const QuizRunnerScreen({super.key, required this.title, required this.questions});
 
   @override
-  State<QuizRunnerScreen> createState() => _QuizRunnerScreenState();
+  ConsumerState<QuizRunnerScreen> createState() => _QuizRunnerScreenState();
 }
 
-class _QuizRunnerScreenState extends State<QuizRunnerScreen> {
+class _QuizRunnerScreenState extends ConsumerState<QuizRunnerScreen> {
   int _index = 0;
   int _score = 0;
   int? _selected;
@@ -100,6 +102,8 @@ class _QuizRunnerScreenState extends State<QuizRunnerScreen> {
   void _next() {
     if (_index + 1 >= widget.questions.length) {
       setState(() => _finished = true);
+      // Nalicz XP za poprawne odpowiedzi (raz, po ukończeniu quizu).
+      ref.read(quizScoreProvider.notifier).addCorrect(_score);
     } else {
       setState(() {
         _index++;

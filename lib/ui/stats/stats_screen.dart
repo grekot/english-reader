@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/gamification.dart';
+import '../../data/gamification_repository.dart';
 import '../../data/lookups_repository.dart';
 import '../../data/progress_repository.dart';
 import '../../data/settings_repository.dart';
@@ -11,85 +13,170 @@ class StatsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    ref.watch(statsControllerProvider); // odśwież po zmianie czasu
+    ref.watch(statsControllerProvider);
     final stats = ref.read(statsControllerProvider.notifier);
-    final goalMin = ref.watch(
-        settingsControllerProvider.select((s) => s.dailyGoalMinutes));
+    final goalMin =
+        ref.watch(settingsControllerProvider.select((s) => s.dailyGoalMinutes));
     final progress = ref.watch(progressProvider);
     final lookups = ref.watch(lookupsControllerProvider);
+    final quizCorrect = ref.watch(quizScoreProvider);
+
+    final readingSeconds = stats.totalSeconds;
+    final readingMinutes = readingSeconds ~/ 60;
+    final completed = progress.values.where((v) => v >= 1.0).length;
+    final inProgress = progress.values.where((v) => v > 0 && v < 1.0).length;
+    final lookupCount = lookups.values.fold<int>(0, (a, b) => a + b.length);
+
+    final xp = computeXp(
+      readingSeconds: readingSeconds,
+      lookups: lookupCount,
+      completedTexts: completed,
+      quizCorrect: quizCorrect,
+    );
+    final level = levelForXp(xp.total);
+    final snapshot = StatsSnapshot(
+      streak: stats.streak,
+      lookups: lookupCount,
+      completedTexts: completed,
+      readingMinutes: readingMinutes,
+      quizCorrect: quizCorrect,
+      xp: xp.total,
+    );
 
     final todayMin = stats.todaySeconds / 60.0;
     final goalFrac = goalMin > 0 ? (todayMin / goalMin).clamp(0.0, 1.0) : 0.0;
-    final completed = progress.values.where((v) => v >= 1.0).length;
-    final inProgress =
-        progress.values.where((v) => v > 0 && v < 1.0).length;
-    final lookupCount =
-        lookups.values.fold<int>(0, (a, b) => a + b.length);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Statystyki')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Dzienny cel
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 64,
-                    height: 64,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        CircularProgressIndicator(
-                          value: goalFrac,
-                          strokeWidth: 7,
-                          backgroundColor:
-                              Theme.of(context).colorScheme.surfaceContainerHighest,
-                        ),
-                        Text('${(goalFrac * 100).round()}%',
-                            style: const TextStyle(fontSize: 12)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Dzienny cel',
-                            style: Theme.of(context).textTheme.titleMedium),
-                        const SizedBox(height: 4),
-                        Text('${todayMin.toStringAsFixed(0)} / $goalMin min dziś'),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          _levelCard(context, level, xp),
           const SizedBox(height: 8),
-          // Kafelki
+          _goalCard(context, todayMin, goalMin, goalFrac),
+          const SizedBox(height: 8),
           GridView.count(
             crossAxisCount: 2,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            childAspectRatio: 1.6,
+            childAspectRatio: 1.7,
             children: [
               _stat(context, Icons.local_fire_department, '${stats.streak}',
                   'dni z rzędu'),
               _stat(context, Icons.menu_book, '$completed', 'ukończonych'),
               _stat(context, Icons.auto_stories, '$inProgress', 'w trakcie'),
               _stat(context, Icons.translate, '$lookupCount', 'sprawdzonych słów'),
-              _stat(context, Icons.calendar_today, '${stats.activeDays}',
-                  'dni z nauką'),
-              _stat(context, Icons.timer, '${(stats.totalSeconds / 60).round()}',
-                  'minut łącznie'),
+              _stat(context, Icons.quiz, '$quizCorrect', 'trafnych odpowiedzi'),
+              _stat(context, Icons.timer, '$readingMinutes', 'minut łącznie'),
             ],
           ),
+          const SizedBox(height: 16),
+          Text('Odznaki', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          _badges(context, snapshot),
         ],
+      ),
+    );
+  }
+
+  Widget _levelCard(BuildContext context, int level, XpBreakdown xp) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      color: scheme.primaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: scheme.primary,
+                  child: Text('$level',
+                      style: TextStyle(
+                          color: scheme.onPrimary,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Poziom $level',
+                          style: Theme.of(context).textTheme.titleLarge),
+                      Text('${xp.total} XP łącznie'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                value: levelProgress(xp.total),
+                minHeight: 10,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${xpIntoLevel(xp.total)} / $kXpPerLevel XP do poziomu ${level + 1}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const Divider(height: 20),
+            Wrap(
+              spacing: 14,
+              runSpacing: 4,
+              children: [
+                _xpPart('📖 czytanie', xp.reading),
+                _xpPart('🔤 słówka', xp.lookups),
+                _xpPart('✅ ukończone', xp.completed),
+                _xpPart('🎯 quizy', xp.quiz),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _xpPart(String label, int value) =>
+      Text('$label: $value XP', style: const TextStyle(fontSize: 12));
+
+  Widget _goalCard(
+      BuildContext context, double todayMin, int goalMin, double goalFrac) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 56,
+              height: 56,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  CircularProgressIndicator(value: goalFrac, strokeWidth: 6),
+                  Text('${(goalFrac * 100).round()}%',
+                      style: const TextStyle(fontSize: 11)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Dzienny cel',
+                      style: Theme.of(context).textTheme.titleMedium),
+                  Text('${todayMin.toStringAsFixed(0)} / $goalMin min dziś'),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -98,17 +185,60 @@ class StatsScreen extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(10),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, color: scheme.primary),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(value, style: Theme.of(context).textTheme.headlineSmall),
-            Text(label, style: Theme.of(context).textTheme.bodySmall),
+            Text(label,
+                style: Theme.of(context).textTheme.bodySmall,
+                textAlign: TextAlign.center),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _badges(BuildContext context, StatsSnapshot snapshot) {
+    final scheme = Theme.of(context).colorScheme;
+    return GridView.count(
+      crossAxisCount: 3,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      childAspectRatio: 0.85,
+      children: [
+        for (final b in kBadges)
+          () {
+            final earned = b.earned(snapshot);
+            return Tooltip(
+              message: '${b.title}\n${b.description}',
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    b.icon,
+                    size: 34,
+                    color: earned ? Colors.amber.shade700 : scheme.outlineVariant,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    b.title,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: earned
+                          ? scheme.onSurface
+                          : scheme.onSurface.withValues(alpha: 0.4),
+                      fontWeight: earned ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }(),
+      ],
     );
   }
 }
