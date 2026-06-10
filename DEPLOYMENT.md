@@ -112,7 +112,14 @@ alter table public.reading_scores enable row level security;
 create policy "anon read"  on public.reading_scores for select to anon using (true);
 create policy "anon write" on public.reading_scores for insert to anon with check (true);
 create policy "anon update" on public.reading_scores for update to anon using (true) with check (true);
+create policy "anon delete" on public.reading_scores for delete to anon using (true);
 ```
+
+> Jeśli utworzyłeś tabelę wcześniej (bez polityki delete), dodaj samą politykę:
+> ```sql
+> create policy "anon delete" on public.reading_scores for delete to anon using (true);
+> ```
+> Bez niej przycisk „Opuść ranking" wyczyści dane lokalnie, ale wpis w chmurze zostanie.
 
 ### Jak działa
 - Każde urządzenie ma lokalny identyfikator + **nazwę** i **kod rodziny**

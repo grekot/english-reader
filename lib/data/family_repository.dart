@@ -134,6 +134,11 @@ class LeaderboardService {
     }, onConflict: 'device_id');
   }
 
+  /// Usuwa wpis tego urządzenia z rankingu (po opuszczeniu grupy).
+  Future<void> deleteScore(String deviceId) async {
+    await _client.from('reading_scores').delete().eq('device_id', deviceId);
+  }
+
   /// Pobiera ranking dla danego kodu rodziny (malejąco wg XP).
   Future<List<ScoreRow>> fetch(String familyCode) async {
     final rows = await _client

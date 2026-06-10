@@ -53,6 +53,38 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
     );
   }
 
+  Future<void> _leave() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Opuść ranking rodzinny?'),
+        content: const Text(
+            'Twój wynik zostanie usunięty z rankingu rodziny, a aplikacja '
+            'poprosi o nazwę i kod ponownie. Twoje statystyki na urządzeniu '
+            'pozostaną nienaruszone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Anuluj'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Opuść'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    final family = ref.read(familyControllerProvider);
+    if (family != null) {
+      try {
+        await ref.read(leaderboardServiceProvider).deleteScore(family.deviceId);
+      } catch (_) {/* nawet jeśli sieć padnie, wychodzimy lokalnie */}
+    }
+    await ref.read(familyControllerProvider.notifier).leave();
+    if (mounted) setState(() => _future = null);
+  }
+
   Future<void> _refresh() async {
     final family = ref.read(familyControllerProvider);
     if (family == null) return;
@@ -83,18 +115,12 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
       appBar: AppBar(
         title: const Text('Ranking rodzinny'),
         actions: [
-          if (family != null) ...[
+          if (family != null)
             IconButton(
               icon: const Icon(Icons.refresh),
               tooltip: 'Odśwież',
               onPressed: _refresh,
             ),
-            IconButton(
-              icon: const Icon(Icons.logout),
-              tooltip: 'Zmień nazwę / kod rodziny',
-              onPressed: () => ref.read(familyControllerProvider.notifier).leave(),
-            ),
-          ],
         ],
       ),
       body: family == null ? _setupForm() : _leaderboard(family),
@@ -153,6 +179,16 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                 ),
               for (var i = 0; i < rows.length; i++)
                 _row(i + 1, rows[i], rows[i].deviceId == family.deviceId),
+              const SizedBox(height: 24),
+              Center(
+                child: TextButton.icon(
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Opuść ranking rodzinny'),
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  onPressed: _leave,
+                ),
+              ),
+              const SizedBox(height: 16),
             ],
           );
         },
