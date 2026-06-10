@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../data/settings_repository.dart';
+import '../about/about_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -109,8 +110,12 @@ class SettingsScreen extends ConsumerWidget {
                   : '…';
               return ListTile(
                 leading: const Icon(Icons.info_outline),
-                title: const Text('Wersja aplikacji'),
-                subtitle: Text(v),
+                title: const Text('O aplikacji'),
+                subtitle: Text('Wersja $v · linki · dziennik błędów'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AboutScreen()),
+                ),
               );
             },
           ),

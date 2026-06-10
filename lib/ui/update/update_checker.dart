@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ota_update/ota_update.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../services/log_service.dart';
 import '../../services/update_service.dart';
 
 /// Sprawdza dostępność aktualizacji i prowadzi użytkownika przez instalację.
@@ -20,7 +21,8 @@ Future<void> checkForUpdateInteractive(
   UpdateInfo? info;
   try {
     info = await service.checkForUpdate();
-  } catch (e) {
+  } catch (e, s) {
+    LogService.instance.error('Sprawdzanie aktualizacji', e, s);
     if (!silent) {
       messenger.showSnackBar(
         SnackBar(content: Text('Nie udało się sprawdzić aktualizacji: $e')),
@@ -116,6 +118,8 @@ Future<void> _runAndroidInstall(
           case OtaStatus.INTERNAL_ERROR:
           case OtaStatus.PERMISSION_NOT_GRANTED_ERROR:
           case OtaStatus.CHECKSUM_ERROR:
+            LogService.instance
+                .error('OTA ${event.status}', event.value ?? '');
             messenger.showSnackBar(
               SnackBar(content: Text('Błąd aktualizacji: ${event.value}')),
             );
@@ -125,13 +129,15 @@ Future<void> _runAndroidInstall(
         }
       },
       onError: (e) {
+        LogService.instance.error('OTA stream', e);
         messenger.showSnackBar(
           SnackBar(content: Text('Błąd aktualizacji: $e')),
         );
       },
       cancelOnError: true,
     );
-  } catch (e) {
+  } catch (e, s) {
+    LogService.instance.error('OTA start', e, s);
     messenger.showSnackBar(
       SnackBar(content: Text('Nie udało się rozpocząć aktualizacji: $e')),
     );
