@@ -33,6 +33,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   final ScrollController _scroll = ScrollController();
   final Stopwatch _readWatch = Stopwatch()..start();
   Timer? _saveDebounce;
+  Timer? _timeFlushTimer;
+  Duration _flushedReading = Duration.zero;
+  StatsController? _statsNotifier; // zapamiętane w initState (bezpieczne w dispose)
   bool _restoredOffset = false;
 
   // Tryb dwujęzyczny (pokaż tłumaczenie pod akapitem)
@@ -50,18 +53,31 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   @override
   void initState() {
     super.initState();
+    _statsNotifier = ref.read(statsControllerProvider.notifier);
     _scroll.addListener(_onScroll);
+    // Co 20 s dolicz dotychczasowy czas czytania (nie tylko przy wyjściu).
+    _timeFlushTimer =
+        Timer.periodic(const Duration(seconds: 20), (_) => _flushReadingTime());
     // Zapisz tekst jako ostatnio otwarty (do listy "Ostatnio używane").
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(recentControllerProvider.notifier).markOpened(widget.entry.id);
     });
   }
 
+  /// Dolicza do statystyk czas, który upłynął od ostatniego zapisu.
+  void _flushReadingTime() {
+    final delta = _readWatch.elapsed - _flushedReading;
+    if (delta.inSeconds > 0) {
+      _flushedReading = _readWatch.elapsed;
+      _statsNotifier?.addReadingTime(delta);
+    }
+  }
+
   @override
   void dispose() {
-    // Dolicz czas spędzony na czytaniu do statystyk dnia.
+    _timeFlushTimer?.cancel();
     _readWatch.stop();
-    ref.read(statsControllerProvider.notifier).addReadingTime(_readWatch.elapsed);
+    _flushReadingTime(); // dolicz resztę przez zapamiętaną referencję
     _player.stop();
     _bubble.hide();
     _saveDebounce?.cancel();
