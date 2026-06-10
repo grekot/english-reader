@@ -69,36 +69,137 @@ class StatsSnapshot {
   });
 }
 
-class BadgeDef {
+enum BadgeTier { none, bronze, silver, gold }
+
+const Map<BadgeTier, String> kTierLabels = {
+  BadgeTier.none: 'Brak',
+  BadgeTier.bronze: 'Brąz',
+  BadgeTier.silver: 'Srebro',
+  BadgeTier.gold: 'Złoto',
+};
+
+/// Kolor dla danego poziomu odznaki (null = niezdobyta).
+Color? tierColor(BadgeTier tier) {
+  switch (tier) {
+    case BadgeTier.bronze:
+      return const Color(0xFFCD7F32);
+    case BadgeTier.silver:
+      return const Color(0xFF9E9E9E);
+    case BadgeTier.gold:
+      return const Color(0xFFFFC107);
+    case BadgeTier.none:
+      return null;
+  }
+}
+
+/// Odznaka wielopoziomowa (brąz → srebro → złoto) na danej metryce.
+class TieredBadge {
   final String id;
   final String title;
-  final String description;
   final IconData icon;
-  final bool Function(StatsSnapshot s) earned;
+  final String unit; // np. "min", "słów"
+  final String description;
+  final int bronze;
+  final int silver;
+  final int gold;
+  final int Function(StatsSnapshot s) value;
 
-  const BadgeDef(this.id, this.title, this.description, this.icon, this.earned);
+  const TieredBadge({
+    required this.id,
+    required this.title,
+    required this.icon,
+    required this.unit,
+    required this.description,
+    required this.bronze,
+    required this.silver,
+    required this.gold,
+    required this.value,
+  });
+
+  BadgeTier tierFor(int v) {
+    if (v >= gold) return BadgeTier.gold;
+    if (v >= silver) return BadgeTier.silver;
+    if (v >= bronze) return BadgeTier.bronze;
+    return BadgeTier.none;
+  }
+
+  /// Następny próg do zdobycia (null = osiągnięto złoto).
+  int? nextThreshold(int v) {
+    if (v < bronze) return bronze;
+    if (v < silver) return silver;
+    if (v < gold) return gold;
+    return null;
+  }
+
+  List<int> get thresholds => [bronze, silver, gold];
 }
 
 /// Definicje odznak. Kolejność = kolejność wyświetlania.
-final List<BadgeDef> kBadges = [
-  BadgeDef('first-steps', 'Pierwsze kroki', 'Zdobądź 10 XP',
-      Icons.flag, (s) => s.xp >= 10),
-  BadgeDef('reader-30', 'Czytelnik', 'Czytaj łącznie 30 minut',
-      Icons.menu_book, (s) => s.readingMinutes >= 30),
-  BadgeDef('marathon', 'Maratończyk', 'Czytaj łącznie 2 godziny',
-      Icons.directions_run, (s) => s.readingMinutes >= 120),
-  BadgeDef('words-50', 'Ciekawski', 'Sprawdź 50 słów',
-      Icons.search, (s) => s.lookups >= 50),
-  BadgeDef('words-200', 'Słownik', 'Sprawdź 200 słów',
-      Icons.translate, (s) => s.lookups >= 200),
-  BadgeDef('finisher-5', 'Mól książkowy', 'Ukończ 5 tekstów',
-      Icons.auto_stories, (s) => s.completedTexts >= 5),
-  BadgeDef('streak-7', 'Tydzień nauki', 'Utrzymaj serię 7 dni',
-      Icons.local_fire_department, (s) => s.streak >= 7),
-  BadgeDef('streak-30', 'Żelazna wola', 'Utrzymaj serię 30 dni',
-      Icons.whatshot, (s) => s.streak >= 30),
-  BadgeDef('quiz-master', 'Quizmistrz', 'Zalicz 20 poprawnych odpowiedzi',
-      Icons.emoji_events, (s) => s.quizCorrect >= 20),
-  BadgeDef('level-5', 'Poziom 5', 'Osiągnij 5. poziom',
-      Icons.military_tech, (s) => levelForXp(s.xp) >= 5),
+final List<TieredBadge> kBadges = [
+  TieredBadge(
+    id: 'reading',
+    title: 'Czas czytania',
+    icon: Icons.timer,
+    unit: 'min',
+    description: 'Łączny czas spędzony na czytaniu tekstów.',
+    bronze: 30,
+    silver: 120,
+    gold: 600,
+    value: (s) => s.readingMinutes,
+  ),
+  TieredBadge(
+    id: 'words',
+    title: 'Sprawdzone słowa',
+    icon: Icons.translate,
+    unit: 'słów',
+    description: 'Liczba różnych słów, które sprawdziłeś (stuknąłeś).',
+    bronze: 50,
+    silver: 200,
+    gold: 1000,
+    value: (s) => s.lookups,
+  ),
+  TieredBadge(
+    id: 'finished',
+    title: 'Ukończone teksty',
+    icon: Icons.auto_stories,
+    unit: 'tekstów',
+    description: 'Teksty oznaczone jako przeczytane (100%).',
+    bronze: 3,
+    silver: 10,
+    gold: 30,
+    value: (s) => s.completedTexts,
+  ),
+  TieredBadge(
+    id: 'streak',
+    title: 'Seria dni',
+    icon: Icons.local_fire_department,
+    unit: 'dni',
+    description: 'Liczba kolejnych dni nauki bez przerwy.',
+    bronze: 3,
+    silver: 7,
+    gold: 30,
+    value: (s) => s.streak,
+  ),
+  TieredBadge(
+    id: 'quiz',
+    title: 'Quizy',
+    icon: Icons.emoji_events,
+    unit: 'odp.',
+    description: 'Liczba poprawnych odpowiedzi w quizach.',
+    bronze: 20,
+    silver: 100,
+    gold: 500,
+    value: (s) => s.quizCorrect,
+  ),
+  TieredBadge(
+    id: 'level',
+    title: 'Poziom',
+    icon: Icons.military_tech,
+    unit: 'poz.',
+    description: 'Twój poziom wynikający z łącznej liczby XP.',
+    bronze: 5,
+    silver: 10,
+    gold: 25,
+    value: (s) => levelForXp(s.xp),
+  ),
 ];

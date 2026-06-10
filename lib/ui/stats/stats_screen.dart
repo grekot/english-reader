@@ -221,38 +221,109 @@ class StatsScreen extends ConsumerWidget {
       crossAxisCount: 3,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 0.85,
+      childAspectRatio: 0.82,
       children: [
         for (final b in kBadges)
           () {
-            final earned = b.earned(snapshot);
-            return Tooltip(
-              message: '${b.title}\n${b.description}',
+            final v = b.value(snapshot);
+            final tier = b.tierFor(v);
+            final color = tierColor(tier) ?? scheme.outlineVariant;
+            return InkWell(
+              onTap: () => _showBadge(context, b, snapshot),
+              borderRadius: BorderRadius.circular(8),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    b.icon,
-                    size: 34,
-                    color: earned ? Colors.amber.shade700 : scheme.outlineVariant,
-                  ),
+                  Icon(b.icon, size: 36, color: color),
                   const SizedBox(height: 4),
                   Text(
                     b.title,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 11,
-                      color: earned
-                          ? scheme.onSurface
-                          : scheme.onSurface.withValues(alpha: 0.4),
-                      fontWeight: earned ? FontWeight.w600 : FontWeight.normal,
+                      color: tier == BadgeTier.none
+                          ? scheme.onSurface.withValues(alpha: 0.45)
+                          : scheme.onSurface,
+                      fontWeight: tier == BadgeTier.none
+                          ? FontWeight.normal
+                          : FontWeight.w600,
                     ),
+                  ),
+                  Text(
+                    tier == BadgeTier.none ? '—' : kTierLabels[tier]!,
+                    style: TextStyle(fontSize: 10, color: color),
                   ),
                 ],
               ),
             );
           }(),
       ],
+    );
+  }
+
+  void _showBadge(BuildContext context, TieredBadge b, StatsSnapshot snapshot) {
+    final v = b.value(snapshot);
+    final tier = b.tierFor(v);
+    final next = b.nextThreshold(v);
+    final names = ['Brąz', 'Srebro', 'Złoto'];
+    final tierColors = [
+      tierColor(BadgeTier.bronze)!,
+      tierColor(BadgeTier.silver)!,
+      tierColor(BadgeTier.gold)!,
+    ];
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(b.icon, color: tierColor(tier) ?? Colors.grey),
+            const SizedBox(width: 10),
+            Expanded(child: Text(b.title)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(b.description),
+            const SizedBox(height: 12),
+            Text('Masz: $v ${b.unit}',
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            if (next != null)
+              Text(
+                'Aktualny poziom: ${tier == BadgeTier.none ? "brak" : kTierLabels[tier]}. '
+                'Do następnego: jeszcze ${next - v} ${b.unit}.',
+              )
+            else
+              const Text('Zdobyto najwyższy poziom — Złoto! 🏆'),
+            const Divider(height: 24),
+            for (var i = 0; i < b.thresholds.length; i++)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Row(
+                  children: [
+                    Icon(
+                      v >= b.thresholds[i]
+                          ? Icons.check_circle
+                          : Icons.radio_button_unchecked,
+                      size: 18,
+                      color: v >= b.thresholds[i] ? tierColors[i] : Colors.grey,
+                    ),
+                    const SizedBox(width: 8),
+                    Text('${names[i]} — ${b.thresholds[i]} ${b.unit}'),
+                  ],
+                ),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
     );
   }
 }
