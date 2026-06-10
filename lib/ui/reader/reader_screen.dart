@@ -236,8 +236,23 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.entry.title,
-            maxLines: 1, overflow: TextOverflow.ellipsis),
+        // Tytuł w osobnym wierszu pod ikonami — nie kurczy się przy wielu akcjach.
+        title: const SizedBox.shrink(),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(36),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                widget.entry.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+          ),
+        ),
         actions: [
           IconButton(
             icon: Icon(_interlinear ? Icons.translate : Icons.g_translate),
