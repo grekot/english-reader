@@ -1,9 +1,12 @@
 name: Release
 
-# Buduje aplikację i publikuje wydanie po wypchnięciu tagu w formacie vX.Y.Z,
-# np. `git tag v1.0.1 && git push origin v1.0.1`.
-# Wydanie zawiera APK (Android) oraz spakowaną aplikację Windows — to z nich
-# korzysta wbudowana auto-aktualizacja (ota_update na Androidzie).
+# Tag vX.Y.Z, np. `git tag v1.1.4 && git push origin v1.1.4`.
+# Android: wspólny workflow Sklepu rodzinnego (grekot/App_storage) buduje podpisany APK
+#   english-reader.apk + app.json + icon.png. Wbudowana aktualizacja (update_service.dart)
+#   bierze pierwszy plik .apk, więc stała nazwa jej nie przeszkadza.
+#   Podpis: własny klucz aplikacji (sekrety ANDROID_*), ten sam co dotąd - aktualizacje w miejscu.
+#   versionCode = numer przebiegu tego workflow (jak dotąd), więc dalej rośnie.
+# Windows: spakowana aplikacja dołączana do tego samego wydania po Androidzie.
 
 on:
   push:
@@ -14,58 +17,28 @@ permissions:
   contents: write  # potrzebne do utworzenia Release
 
 jobs:
-  android:
+  meta:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - id: v
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-
-      - run: flutter --version
-      - run: flutter pub get
-
-      # Odtwórz keystore i key.properties z sekretów repozytorium.
-      # Wymagane sekrety (Settings > Secrets and variables > Actions):
-      #   ANDROID_KEYSTORE_BASE64, ANDROID_STORE_PASSWORD,
-      #   ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
-      - name: Konfiguracja podpisywania (release)
-        env:
-          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          STORE_PW: ${{ secrets.ANDROID_STORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          KEY_PW: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: |
-          echo "$KEYSTORE_B64" | base64 -d > android/app/upload-keystore.jks
-          cat > android/key.properties <<EOF
-          storeFile=upload-keystore.jks
-          storePassword=$STORE_PW
-          keyAlias=$KEY_ALIAS
-          keyPassword=$KEY_PW
-          EOF
-
-      # build-name pobierany z tagu (np. v1.0.1 -> 1.0.1)
-      - name: Build APK
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          flutter build apk --release --build-name="$VERSION" --build-number="${GITHUB_RUN_NUMBER}"
-
-      - name: Przenieś APK pod stałą nazwę
-        run: |
-          mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk "dist/english-reader-${GITHUB_REF_NAME}.apk"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: android-apk
-          path: dist/*.apk
+  android:
+    needs: meta
+    uses: grekot/App_storage/.github/workflows/flutter-android-release.yml@main
+    with:
+      asset_name: english-reader
+      version: ${{ needs.meta.outputs.version }}
+      tag: ${{ github.ref_name }}
+      release_name: ${{ github.ref_name }}
+    secrets:
+      KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
 
   windows:
     runs-on: windows-latest
@@ -98,20 +71,18 @@ jobs:
           name: windows-zip
           path: dist/*.zip
 
-  release:
+  # Dołącza zip Windows do wydania utworzonego przez job android (bez wyścigu).
+  windows-release:
     needs: [android, windows]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
         with:
+          name: windows-zip
           path: artifacts
 
-      - name: Utwórz Release i dołącz pliki
+      - name: Dołącz zip Windows do wydania
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
-          generate_release_notes: true
-          files: |
-            artifacts/android-apk/*.apk
-            artifacts/windows-zip/*.zip
+          files: artifacts/*.zip
